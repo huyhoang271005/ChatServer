@@ -1,0 +1,25 @@
+package social.chat.config.common;
+
+import lombok.NoArgsConstructor;
+import org.springframework.modulith.NamedInterface;
+
+@NamedInterface
+@NoArgsConstructor
+public final class GlobalMessage {
+    public static final class Error {
+        public static final String INTERNAL = "global.error.internal";
+        public static final String DATA_INVALID = "global.error.data.invalid";
+    }
+
+    public static final class Success {
+        public static final String CREATED = "global.success.created";
+        public static final String UPDATED = "global.success.updated";
+        public static final String DELETED = "global.success.deleted";
+        public static final String GET =  "global.success.get";
+    }
+
+    public static final class Time {
+        public static final String MINUTE = "global.time.minute";
+        public static final String HOUR = "global.time.hour";
+    }
+}
