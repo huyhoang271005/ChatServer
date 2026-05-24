@@ -6,8 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.authentication.api.dto.PermissionName;
-import social.chat.authentication.api.dto.RoleDefault;
+import social.chat.authentication.internal.enums.PermissionName;
+import social.chat.authentication.internal.enums.RoleDefault;
 import social.chat.authentication.internal.entity.Permission;
 import social.chat.authentication.internal.entity.Role;
 import social.chat.authentication.internal.entity.RolePermission;
@@ -53,15 +53,14 @@ public class RolePermissionInit {
                 Role role = Role.builder()
                         .roleName(roleName.name())
                         .build();
-                if(roleName == RoleDefault.ADMIN){
-                    role.setRolePermissions(permissions.stream()
+                switch (roleName) {
+                    case ADMIN -> role.setRolePermissions(permissions.stream()
                             .map(permission -> RolePermission.builder()
                                     .permission(permission)
                                     .role(role)
                                     .build())
                             .toList());
-                } else if(roleName == RoleDefault.USER){
-
+                    case USER -> {}
                 }
                 roles.add(role);
             }

@@ -12,7 +12,11 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TokenDto {
+    String userId;
+    Boolean verifiedEmail;
+    Boolean verifiedDevice;
     String accessToken;
     String refreshToken;
     boolean hasProfile;
+    boolean updateProfile;
 }

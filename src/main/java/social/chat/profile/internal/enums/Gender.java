@@ -1,4 +1,4 @@
-package social.chat.profile.api.dto;
+package social.chat.profile.internal.enums;
 
 public enum Gender {
     MALE, FEMALE, OTHER;

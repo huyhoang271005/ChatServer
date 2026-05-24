@@ -7,4 +7,7 @@ import social.chat.authentication.api.dto.TokenDto;
 public interface AuthImp {
     void checkUser(Long userId);
     TokenDto generateToken(Long userId, Long sessionId);
+    void updateAccountStatusFromPendingToActive(Long userId);
+    void hardDeleteRole();
+    void hardDeleteUser();
 }

@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.UpdateTimestamp;
-import social.chat.profile.api.dto.Gender;
+import social.chat.profile.internal.enums.Gender;
 
 import java.time.Instant;
 import java.time.LocalDate;

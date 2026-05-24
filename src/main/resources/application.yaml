@@ -3,6 +3,8 @@ spring:
     import: optional:file:.env[.properties]
   application:
     name: chat
+    frontend-url: ${FRONTEND_URL}
+    backend-url: ${BACKEND_URL}
   cache:
     type: caffeine
     caffeine:
@@ -41,15 +43,15 @@ spring:
           auth: true
           ssl:
             enable: true
+            trust: ${MAIL_HOST}
 yitter:
   worker-id: 1
   worker-id-bit-length: 6
   seq-bit-length: 6
-#cloudinary:
-#  cloud-name: ${CLOUD_NAME}
-#  api-key: ${CLOUD_API_KEY}
-#  api-secret: ${CLOUD_API_SECRET}
-application:
-  appName: Chat nội bộ
-#  frontend-url: ${FRONTEND_URL}
-#  backend-url: ${BACKEND_URL}
+logging:
+  level:
+    org.springframework.security: DEBUG
+cloudinary:
+  cloud-name: ${CLOUD_NAME}
+  api-key: ${CLOUD_API_KEY}
+  api-secret: ${CLOUD_API_SECRET}

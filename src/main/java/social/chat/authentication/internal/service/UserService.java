@@ -6,14 +6,16 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.authentication.api.dto.RoleDefault;
+import social.chat.authentication.api.dto.TokenDto;
+import social.chat.authentication.internal.cache.UserCache;
+import social.chat.authentication.internal.enums.RoleDefault;
 import social.chat.authentication.internal.AuthenticationMessage;
 import social.chat.authentication.internal.repository.RoleRepository;
 import social.chat.config.common.GlobalMessage;
 import social.chat.config.common.Response;
 import social.chat.exception.ConflictException;
-import social.chat.authentication.api.dto.AccountStatus;
-import social.chat.authentication.api.dto.UserDto;
+import social.chat.authentication.internal.enums.AccountStatus;
+import social.chat.authentication.api.dto.LoginRequest;
 import social.chat.authentication.internal.entity.User;
 import social.chat.authentication.internal.repository.UserRepository;
 import social.chat.profile.api.ProfileImp;
@@ -28,24 +30,25 @@ public class UserService {
     UserRepository userRepository;
     PasswordEncoder passwordEncoder;
     RoleRepository roleRepository;
+    UserCache userCache;
     ProfileImp profileImp;
 
     @Transactional
-    public Response<UserDto> createUserWithEmail(UserDto userDto) {
-        if(profileImp.existsByEmail(userDto.getEmail())) {
+    public Response<TokenDto> createUserWithEmail(LoginRequest loginRequest) {
+        if(profileImp.existsEmailByEmailName(loginRequest.getEmailName())) {
             throw new ConflictException(AuthenticationMessage.User.EXITS);
         }
         User user = User.builder()
                 .accountStatus(AccountStatus.INACTIVE)
-                .passwordHash(passwordEncoder.encode(userDto.getPassword()))
+                .passwordHash(passwordEncoder.encode(loginRequest.getPassword()))
                 .role(roleRepository.findByRoleName(RoleDefault.USER.name()).orElse(null))
                 .build();
         userRepository.save(user);
-        profileImp.createEmail(userDto.getEmail(), user.getUserId(), false);
+        profileImp.createEmail(loginRequest.getEmailName(), user.getUserId(), false);
         return Response.success(
                 GlobalMessage.Success.CREATED,
-                UserDto.builder()
-                        .userId(user.getUserId().toString())
+                TokenDto.builder()
+                        .userId(String.valueOf(user.getUserId()))
                         .build()
         );
     }
@@ -53,16 +56,11 @@ public class UserService {
     @Transactional
     public Response<Void> deleteUser(Long userId) {
         softDeleteUser(List.of(userId));
+        userCache.updateUserCache(userId, null, null);
         return Response.success(
                 GlobalMessage.Success.DELETED,
                 null
         );
-    }
-
-    @Transactional
-    public void hardDeleteUser(List<Long> userIds) {
-        userRepository.deleteAllById(userIds);
-        profileImp.deleteProfileAndEmails(userIds);
     }
 
     @Transactional

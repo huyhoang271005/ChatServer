@@ -21,11 +21,12 @@ import java.util.List;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class GlobalExceptionHandle {
+    ResponseTranslationAdvice responseTranslationAdvice;
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<Response<List<String>>> handleConflict(ConflictException conflictException){
         String message = conflictException.getMessage();
-        log.error(message);
+        log.error(responseTranslationAdvice.getString(message));
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
                 new Response<>(
                         false,
@@ -38,7 +39,7 @@ public class GlobalExceptionHandle {
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Response<List<String>>> handleEntityNotFound(EntityNotFoundException entityNotFoundException){
         String message = entityNotFoundException.getMessage();
-        log.error(message);
+        log.error(responseTranslationAdvice.getString(message));
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                 new Response<>(
                         false,
@@ -51,8 +52,21 @@ public class GlobalExceptionHandle {
     @ExceptionHandler(UnprocessableException.class)
     public ResponseEntity<Response<List<String>>> handleUnprocessable(UnprocessableException unprocessableException){
         String message = unprocessableException.getMessage();
-        log.error(message);
+        log.error(responseTranslationAdvice.getString(message));
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(
+                new Response<>(
+                        false,
+                        message,
+                        List.of(message)
+                )
+        );
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<Response<List<String>>> handleUnauthorized(UnauthorizedException unauthorizedException){
+        String message = unauthorizedException.getMessage();
+        log.error(responseTranslationAdvice.getString(message));
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
                 new Response<>(
                         false,
                         message,
@@ -80,7 +94,7 @@ public class GlobalExceptionHandle {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Response<List<String>>> handleException(Exception exception){
         String message = exception.getMessage();
-        log.error(message);
+        log.error(responseTranslationAdvice.getString(message));
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                 new Response<>(
                         false,

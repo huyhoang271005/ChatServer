@@ -1,7 +1,7 @@
-package social.chat.authentication.api.dto;
+package social.chat.authentication.internal.enums;
 
 public enum VerificationType {
     VERIFICATION_EMAIL,
     VERIFICATION_DEVICE,
-    CHANGE_PASSWORD
+    VERIFICATION_RESET_PASSWORD
 }

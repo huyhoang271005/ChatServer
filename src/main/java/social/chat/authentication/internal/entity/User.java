@@ -5,10 +5,9 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import social.chat.config.generateId.GenerateId;
-import social.chat.authentication.api.dto.AccountStatus;
+import social.chat.authentication.internal.enums.AccountStatus;
 
 import java.time.Instant;
-import java.util.List;
 
 @Table(name = "users", indexes = {
         @Index(name = "idx_users_role", columnList = "role_id"),
@@ -47,7 +46,4 @@ public class User {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id")
     Role role;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    List<Verification> verifications;
 }

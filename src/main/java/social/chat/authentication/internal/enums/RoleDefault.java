@@ -1,12 +1,11 @@
-package social.chat.authentication.api.dto;
+package social.chat.authentication.internal.enums;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum RoleDefault {
     ADMIN,
-    USER,
-    PENDING_PROFILE;
+    USER;
 
     @JsonCreator
     public static RoleDefault forValue(String value) {

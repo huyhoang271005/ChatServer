@@ -17,7 +17,6 @@ import social.chat.profile.internal.repository.EmailRepository;
 import social.chat.profile.internal.repository.ProfileRepository;
 
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Service
@@ -36,8 +35,13 @@ public class ProfileLogicService implements ProfileImp {
 
     @Override
     @Transactional(readOnly = true)
-    public boolean existsByEmail(String email) {
+    public boolean existsEmailByEmailName(String email) {
         return emailRepository.existsByEmailName(email);
+    }
+
+    @Override
+    public boolean existsProfileByUserId(Long userId) {
+        return profileRepository.existsById(userId);
     }
 
     @Override
@@ -72,9 +76,12 @@ public class ProfileLogicService implements ProfileImp {
 
     @Override
     @Transactional
-    public void verifiedEmail(String emailName) {
-        Email email = emailRepository.findByEmailName(emailName)
+    public void verifiedEmail(Long emailId) {
+        Email email = emailRepository.findById(emailId)
                 .orElseThrow(() -> new EntityNotFoundException(ProfileMessage.Email.NOT_EXITS));
+        if(email.getVerified()){
+            throw new ConflictException(ProfileMessage.Email.VERIFIED);
+        }
         email.setVerified(true);
     }
 }

@@ -4,14 +4,14 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
-import social.chat.authentication.api.dto.VerificationType;
+import social.chat.authentication.internal.enums.VerificationType;
 import social.chat.config.generateId.GenerateId;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "verification", indexes = {
-        @Index(name = "idx_verification_user", columnList = "user_id")
+        @Index(name = "idx_verification_session", columnList = "session_id")
 })
 @Getter
 @Setter
@@ -23,7 +23,7 @@ public class Verification {
     @Id
     @GenerateId
     @Column(name = "verification_id")
-    Long verificationTokenId;
+    Long verificationId;
 
     @Column(name = "type_id")
     Long typeId;
@@ -40,6 +40,6 @@ public class Verification {
     Instant createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    User user;
+    @JoinColumn(name = "session_id")
+    Session session;
 }

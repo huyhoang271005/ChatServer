@@ -1,12 +1,13 @@
 package social.chat.authentication.internal.controller;
 
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import social.chat.authentication.api.dto.UserDto;
+import social.chat.authentication.api.dto.LoginRequest;
 import social.chat.authentication.internal.service.UserService;
 
 @RestController
@@ -16,10 +17,10 @@ import social.chat.authentication.internal.service.UserService;
 public class UserController {
     UserService userService;
 
-    @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody UserDto userDto) {
+    @PostMapping("auth")
+    public ResponseEntity<?> createUser(@Valid @RequestBody LoginRequest loginRequest) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(userService.createUserWithEmail(userDto));
+                .body(userService.createUserWithEmail(loginRequest));
     }
 
     @DeleteMapping("{userId}")

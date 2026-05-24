@@ -1,4 +1,4 @@
-package social.chat.config;
+package social.chat.config.emailSender;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -8,29 +8,25 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.event.EventListener;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.modulith.NamedInterface;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
-import social.chat.authentication.api.events.AuthRegisteredEvent;
-import social.chat.config.common.ApplicationProperties;
 
 import java.util.Map;
 
+@NamedInterface
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@EnableAsync
 public class EmailSenderService {
     JavaMailSender mailSender;
     TemplateEngine templateEngine;
-    ApplicationProperties applicationProperties;
     @NonFinal
     @Value("${spring.mail.username}")
     String mailUsername;
@@ -62,23 +58,5 @@ public class EmailSenderService {
             // Các lỗi không xác định khác (Thymeleaf render lỗi...)
             log.error("Unexpected error during email processing for {}: {}", toEmail, e.getMessage());
         }
-    }
-
-    public void sendEmailVerify(String toEmail, String title, String fullName, String activity,
-                                String verificationUrl, String timeExpire) {
-        sendEmail(toEmail, title, "verified", Map.of(
-                "appName", applicationProperties.getAppName(),
-                "fullName", fullName,
-                "activity", activity,
-                "verificationUrl", verificationUrl,
-                "timeExpire", timeExpire
-        ));
-    }
-
-    @EventListener
-    public void handleUserRegisteredEvent(AuthRegisteredEvent event) {
-        log.info("has received the event send verified email");
-        sendEmailVerify(event.toEmail(), event.title(), event.fullName(),
-                event.activity(), event.verificationUrl(), event.timeExpire());
     }
 }

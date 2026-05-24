@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import social.chat.config.generateId.GenerateId;
 
+import java.time.Instant;
 import java.util.List;
 
 @Table(name = "roles", indexes = {
@@ -25,6 +26,9 @@ public class Role {
 
     @Column(name = "role_name", columnDefinition = "NVARCHAR(125)")
     String roleName;
+
+    @Column(name = "deleted_at")
+    Instant deletedAt;
 
     @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     List<RolePermission> rolePermissions;

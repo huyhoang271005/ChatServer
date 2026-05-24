@@ -1,0 +1,152 @@
+package social.chat.authentication.internal.service;
+
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import social.chat.authentication.api.dto.PermissionDto;
+import social.chat.authentication.api.dto.RolePermissionDto;
+import social.chat.authentication.internal.AuthenticationMessage;
+import social.chat.authentication.internal.cache.RoleCache;
+import social.chat.authentication.internal.entity.Permission;
+import social.chat.authentication.internal.entity.Role;
+import social.chat.authentication.internal.entity.RolePermission;
+import social.chat.authentication.internal.mapper.PermissionMapper;
+import social.chat.authentication.internal.mapper.RoleMapper;
+import social.chat.authentication.internal.repository.PermissionRepository;
+import social.chat.authentication.internal.repository.RolePermissionRepository;
+import social.chat.authentication.internal.repository.RoleRepository;
+import social.chat.config.common.GlobalMessage;
+import social.chat.config.common.Response;
+import social.chat.exception.ConflictException;
+import social.chat.exception.EntityNotFoundException;
+
+import java.time.Instant;
+import java.util.List;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class RoleService {
+    RoleRepository roleRepository;
+    PermissionRepository permissionRepository;
+    RolePermissionRepository rolePermissionRepository;
+    RoleCache roleCache;
+    RoleMapper roleMapper;
+    PermissionMapper permissionMapper;
+
+    @Transactional
+    public Response<RolePermissionDto> createRole(RolePermissionDto rolePermissionDto) {
+        if(roleRepository.existsByRoleName(rolePermissionDto.getRoleName())) {
+            throw new ConflictException(AuthenticationMessage.Role.EXISTS);
+        }
+        Role role = roleMapper.toRole(rolePermissionDto);
+        List<Permission> permissions = permissionRepository.findAllById(rolePermissionDto.getPermissions()
+                .stream()
+                .map(permissionDto -> Long.valueOf(permissionDto.getPermissionId()))
+                .toList());
+        List<RolePermission> rolePermissions = permissions.stream()
+                        .map(permission -> RolePermission.builder()
+                                .role(role)
+                                .permission(permission)
+                                .build())
+                        .toList();
+        role.setRolePermissions(rolePermissions);
+       roleRepository.save(role);
+
+        List<PermissionDto> permissionDtos = rolePermissions.stream()
+                .map(rolePermission -> {
+                    PermissionDto permissionDto = permissionMapper.toPermissionDto(rolePermission.getPermission());
+                    permissionDto.setRolePermissionId(rolePermission.getRolePermissionId());
+                    return permissionDto;
+                })
+                .toList();
+        RolePermissionDto rolePermissionDto1 = roleMapper.toRolePermissionDto(role);
+        rolePermissionDto1.setPermissions(permissionDtos);
+        return Response.success(
+                GlobalMessage.Success.CREATED,
+                rolePermissionDto1
+        );
+    }
+
+    @Transactional
+    public Response<RolePermissionDto> updateRole(RolePermissionDto rolePermissionDto) {
+        Role role = roleRepository.findById(Long.parseLong(rolePermissionDto.getRoleId()))
+                .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Role.NOT_EXISTS));
+        List<Permission> permissions = permissionRepository.findAllById(rolePermissionDto.getPermissions()
+                .stream()
+                .map(permissionDto -> Long.valueOf(permissionDto.getPermissionId()))
+                .toList());
+        rolePermissionRepository.deleteAll(role.getRolePermissions());
+        List<RolePermission> rolePermissions = permissions.stream()
+                .map(permission -> RolePermission.builder()
+                        .role(role)
+                        .permission(permission)
+                        .build())
+                .toList();
+        rolePermissionRepository.saveAll(rolePermissions);
+        roleCache.deleteRolePermissionCache(role.getRoleId());
+        RolePermissionDto rolePermissionDto1 = roleMapper.toRolePermissionDto(role);
+        rolePermissionDto1.setPermissions(rolePermissions.stream()
+                .map(rolePermission -> {
+                    PermissionDto permissionDto = permissionMapper.toPermissionDto(rolePermission.getPermission());
+                    permissionDto.setRolePermissionId(rolePermission.getRolePermissionId());
+                    return permissionDto;
+                })
+                .toList());
+        return Response.success(
+                GlobalMessage.Success.UPDATED,
+                rolePermissionDto1
+        );
+    }
+
+    @Transactional
+    public Response<Void> softDeleteRole(Long roleId) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Role.NOT_EXISTS));
+        role.setDeletedAt(Instant.now());
+        roleCache.deleteRolePermissionCache(roleId);
+        return Response.success(
+                GlobalMessage.Success.DELETED,
+                null
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public Response<List<PermissionDto>> getAllPermissions(){
+        List<Permission> permissions = permissionRepository.findAll();
+        return Response.success(
+                GlobalMessage.Success.GET,
+                permissions.stream()
+                        .map(permissionMapper::toPermissionDto)
+                        .toList()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public Response<List<RolePermissionDto>> getAllRolePermissions() {
+        List<Role> roles = roleRepository.findAllRolesWithPermissions();
+        List<RolePermissionDto> rolePermissionDtos = roles.stream()
+                .map(role -> {
+                    RolePermissionDto rolePermissionDto = roleMapper.toRolePermissionDto(role);
+                    rolePermissionDto.setPermissions(role.getRolePermissions()
+                            .stream()
+                            .map(rolePermission -> {
+                                PermissionDto permissionDto = permissionMapper.toPermissionDto(rolePermission.getPermission());
+                                permissionDto.setRolePermissionId(rolePermission.getRolePermissionId());
+                                return permissionDto;
+                            })
+                            .toList());
+                    return rolePermissionDto;
+                })
+                .toList();
+        return Response.success(
+                GlobalMessage.Success.GET,
+                rolePermissionDtos
+        );
+    }
+
+}

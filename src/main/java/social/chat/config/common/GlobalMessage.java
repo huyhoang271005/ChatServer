@@ -9,6 +9,8 @@ public final class GlobalMessage {
     public static final class Error {
         public static final String INTERNAL = "global.error.internal";
         public static final String DATA_INVALID = "global.error.data.invalid";
+        public static final String TOKEN_INVALID = "global.error.token.invalid";
+        public static final String FORBIDDEN = "global.error.forbidden";
     }
 
     public static final class Success {

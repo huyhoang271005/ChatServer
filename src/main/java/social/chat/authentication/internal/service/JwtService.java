@@ -4,12 +4,10 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
-import org.springframework.security.oauth2.jwt.JwsHeader;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
 import social.chat.authentication.api.JwtProperties;
+import social.chat.authentication.api.dto.JwtResponse;
 
 import java.time.Instant;
 
@@ -18,6 +16,7 @@ import java.time.Instant;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class JwtService {
     JwtEncoder jwtEncoder;
+    JwtDecoder jwtDecoder;
     JwtProperties jwtProperties;
 
     public String generateJwt(Long userId, Long sessionId, Boolean isRefreshToken){
@@ -32,5 +31,16 @@ public class JwtService {
                 .build();
 
         return jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader, jwtClaimsSet)).getTokenValue();
+    }
+
+    // Map with userId, sessionId
+    public JwtResponse decoderJwt(String jwt) {
+        Jwt jwt1 = jwtDecoder.decode(jwt);
+        Long userId = Long.parseLong(jwt1.getSubject());
+        Long sessionId = Long.parseLong(jwt1.getClaim("sessionId"));
+        return JwtResponse.builder()
+                .userId(userId)
+                .sessionId(sessionId)
+                .build();
     }
 }

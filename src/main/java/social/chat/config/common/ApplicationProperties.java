@@ -8,12 +8,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConfigurationProperties(prefix = "application")
+@ConfigurationProperties(prefix = "spring.application")
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ApplicationProperties {
-    String appName;
+    String name;
     String backendUrl;
-    String frontEndUrl;
+    String frontendUrl;
 }
