@@ -4,7 +4,6 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,6 +17,7 @@ import social.chat.authentication.internal.entity.Session;
 import social.chat.authentication.internal.entity.User;
 import social.chat.authentication.internal.entity.Verification;
 import social.chat.authentication.internal.enums.AccountStatus;
+import social.chat.authentication.internal.enums.VerificationStatus;
 import social.chat.authentication.internal.enums.VerificationType;
 import social.chat.authentication.internal.repository.*;
 import social.chat.config.common.ApplicationProperties;
@@ -30,8 +30,10 @@ import social.chat.exception.UnprocessableException;
 import social.chat.profile.api.ProfileImp;
 import social.chat.profile.api.dto.EmailResponse;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -82,10 +84,24 @@ public class VerificationService {
         Session session = createSession(emailResponse.getUserId(), deviceId, deviceName, deviceType,
                 userAgent, ipAddress, location);
         Long typeId = getTypeId(verificationType, emailResponse, session);
+        List<Verification> verifications = verificationRepository
+                .findBySessionAndVerificationTypeAndTypeIdAndExpiredAtAfterOrderByCreatedAtDesc(
+                        session, verificationType, typeId, Instant.now()
+                );
+        if(!verifications.isEmpty()) {
+            long timeWaited = Duration.between(verifications.getFirst().getCreatedAt(),
+                    Instant.now()).toMinutes();
+            double timeNeedWait = Math.pow(verifications.size(), 2);
+            if(timeWaited < timeNeedWait) {
+                throw new ConflictException(GlobalMessage.RateLimit.MINUTE, timeNeedWait - timeWaited);
+            }
+        }
+        verificationRepository.cancelVerificationPending(typeId, Instant.now());
         Verification verification = Verification.builder()
                 .session(session)
                 .verificationType(verificationType)
                 .typeId(typeId)
+                .verificationStatus(VerificationStatus.PENDING)
                 .expiredAt(Instant.now().plus(expireAfterHour, ChronoUnit.HOURS))
                 .build();
         verificationRepository.save(verification);
@@ -98,11 +114,11 @@ public class VerificationService {
                         verification.getVerificationId(),
                 expireAfterHour + " " + responseTranslationAdvice.getString(GlobalMessage.Time.HOUR)
         );
-        eventPublisher.publishEvent(event);
+//        eventPublisher.publishEvent(event);
         return session.getDevice().getDeviceId();
     }
 
-    private static @Nullable Long getTypeId(VerificationType verificationType, EmailResponse emailResponse, Session session) {
+    private Long getTypeId(VerificationType verificationType, EmailResponse emailResponse, Session session) {
         Long typeId;
         switch(verificationType) {
             case VERIFICATION_EMAIL -> {
@@ -117,6 +133,7 @@ public class VerificationService {
                 }
                 typeId = session.getSessionId();
             }
+            case VERIFICATION_RESET_PASSWORD -> typeId = session.getUser().getUserId();
             default -> typeId = null;
         }
         return typeId;
@@ -166,6 +183,11 @@ public class VerificationService {
         Verification verification = verificationRepository
                 .findById(Long.parseLong(verificationDto.getVerificationId()))
                 .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Verification.NOT_EXISTS));
+        if(verification.getVerificationStatus() == VerificationStatus.USED){
+            throw new ConflictException(AuthenticationMessage.Verification.USED);
+        } else if(verification.getVerificationStatus() == VerificationStatus.CANCELLED){
+            throw new ConflictException(AuthenticationMessage.Verification.INVALID);
+        }
         if(verification.getExpiredAt().isBefore(Instant.now())){
             throw new ConflictException(AuthenticationMessage.Verification.EXPIRED);
         }
@@ -194,6 +216,8 @@ public class VerificationService {
                 throw new RuntimeException(GlobalMessage.Error.INTERNAL);
             }
         }
+        verification.setVerificationStatus(VerificationStatus.USED);
+        verification.setUsedAt(Instant.now());
         return Response.success(
                 AuthenticationMessage.Verification.SUCCESS,
                 null

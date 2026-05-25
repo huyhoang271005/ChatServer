@@ -26,12 +26,13 @@ public class GlobalExceptionHandle {
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<Response<List<String>>> handleConflict(ConflictException conflictException){
         String message = conflictException.getMessage();
-        log.error(responseTranslationAdvice.getString(message));
+        log.error(responseTranslationAdvice.getString(message, conflictException.getArgs()));
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
                 new Response<>(
                         false,
                         message,
-                        List.of(message)
+                        List.of(message),
+                        conflictException.getArgs()
                 )
         );
     }
@@ -39,12 +40,13 @@ public class GlobalExceptionHandle {
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Response<List<String>>> handleEntityNotFound(EntityNotFoundException entityNotFoundException){
         String message = entityNotFoundException.getMessage();
-        log.error(responseTranslationAdvice.getString(message));
+        log.error(responseTranslationAdvice.getString(message, entityNotFoundException.getArgs()));
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                 new Response<>(
                         false,
                         message,
-                        List.of(message)
+                        List.of(message),
+                        entityNotFoundException.getArgs()
                 )
         );
     }
@@ -52,12 +54,13 @@ public class GlobalExceptionHandle {
     @ExceptionHandler(UnprocessableException.class)
     public ResponseEntity<Response<List<String>>> handleUnprocessable(UnprocessableException unprocessableException){
         String message = unprocessableException.getMessage();
-        log.error(responseTranslationAdvice.getString(message));
+        log.error(responseTranslationAdvice.getString(message, unprocessableException.getArgs()));
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(
                 new Response<>(
                         false,
                         message,
-                        List.of(message)
+                        List.of(message),
+                        unprocessableException.getArgs()
                 )
         );
     }
@@ -65,12 +68,13 @@ public class GlobalExceptionHandle {
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<Response<List<String>>> handleUnauthorized(UnauthorizedException unauthorizedException){
         String message = unauthorizedException.getMessage();
-        log.error(responseTranslationAdvice.getString(message));
+        log.error(responseTranslationAdvice.getString(message, unauthorizedException.getArgs()));
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
                 new Response<>(
                         false,
                         message,
-                        List.of(message)
+                        List.of(message),
+                        unauthorizedException.getArgs()
                 )
         );
     }

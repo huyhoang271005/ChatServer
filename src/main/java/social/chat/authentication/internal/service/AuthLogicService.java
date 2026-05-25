@@ -12,6 +12,7 @@ import social.chat.authentication.internal.AuthenticationMessage;
 import social.chat.authentication.internal.entity.User;
 import social.chat.authentication.internal.repository.RoleRepository;
 import social.chat.authentication.internal.repository.UserRepository;
+import social.chat.authentication.internal.repository.VerificationRepository;
 import social.chat.exception.ConflictException;
 import social.chat.exception.EntityNotFoundException;
 import social.chat.profile.api.ProfileImp;
@@ -26,6 +27,7 @@ import java.util.List;
 public class AuthLogicService implements AuthImp {
     UserRepository userRepository;
     RoleRepository roleRepository;
+    VerificationRepository verificationRepository;
     ProfileImp profileImp;
     JwtService jwtService;
 
@@ -57,6 +59,16 @@ public class AuthLogicService implements AuthImp {
         if(user.getAccountStatus() == AccountStatus.PENDING_PROFILE) {
             user.setAccountStatus(AccountStatus.ACTIVE);
         }
+    }
+
+    @Override
+    public void expiredVerification() {
+        verificationRepository.expireVerificationPending(Instant.now());
+    }
+
+    @Override
+    public void hardDeleteVerification() {
+
     }
 
     @Override

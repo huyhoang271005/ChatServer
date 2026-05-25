@@ -8,6 +8,8 @@ public interface AuthImp {
     void checkUser(Long userId);
     TokenDto generateToken(Long userId, Long sessionId);
     void updateAccountStatusFromPendingToActive(Long userId);
+    void expiredVerification();
+    void hardDeleteVerification();
     void hardDeleteRole();
     void hardDeleteUser();
 }

@@ -24,4 +24,10 @@ public final class GlobalMessage {
         public static final String MINUTE = "global.time.minute";
         public static final String HOUR = "global.time.hour";
     }
+
+    public static final class RateLimit {
+        public static final String MINUTE = "global.rate-limit.minute";
+        public static final String HOUR = "global.rate-limit.hour";
+        public static final String SECOND = "global.rate-limit.second";
+    }
 }

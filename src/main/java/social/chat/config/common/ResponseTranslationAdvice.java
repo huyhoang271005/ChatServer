@@ -26,14 +26,8 @@ import java.util.List;
 public class ResponseTranslationAdvice implements ResponseBodyAdvice<Object> {
     MessageSource messageSource;
 
-    public String getString(String messageKey){
-        String message = messageKey;
-        try{
-            message = messageSource.getMessage(messageKey, null, LocaleContextHolder.getLocale());
-        } catch (Exception ignored){
-            log.error("Not found message source {}", messageKey);
-        }
-        return message;
+    public String getString(String messageKey, Object... args) {
+        return messageSource.getMessage(messageKey, args, messageKey, LocaleContextHolder.getLocale());
     }
     @Override
     public boolean supports(@NonNull MethodParameter returnType,
@@ -41,6 +35,7 @@ public class ResponseTranslationAdvice implements ResponseBodyAdvice<Object> {
         return ResponseEntity.class.isAssignableFrom(returnType.getParameterType());
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public @Nullable Object beforeBodyWrite(@Nullable Object body, @NonNull MethodParameter returnType,
                                             @NonNull MediaType selectedContentType,
@@ -51,13 +46,13 @@ public class ResponseTranslationAdvice implements ResponseBodyAdvice<Object> {
             String currentMessage = apiResponse.getMessage();
 
             if (currentMessage != null && !currentMessage.isEmpty()) {
-                String translated = getString(currentMessage);
+                String translated = getString(currentMessage, apiResponse.getArgs());
                 apiResponse.setMessage(translated);
                 if(apiResponse.getData() != null && apiResponse.getData() instanceof List<?> list){
-                    List<Object> updateList = list.stream()
+                    List<?> updateList = list.stream()
                             .map(o -> o instanceof String key ? getString(key) : o)
                             .toList();
-                    ((Response) apiResponse).setData(updateList);
+                    ((Response<List<?>>) apiResponse).setData(updateList);
                 }
             }
         }

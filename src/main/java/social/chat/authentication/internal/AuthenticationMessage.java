@@ -30,6 +30,7 @@ public final class AuthenticationMessage {
         public static final String NOT_EXISTS = "verification.not-exists";
         public static final String EXPIRED = "verification.expired";
         public static final String INVALID = "verification.invalid";
+        public static final String USED = "verification.used";
         public static final String SUCCESS = "verification.success";
         public static final String EMAIL_VERIFIED = "verification.email.verified";
         public static final String DEVICE_VERIFIED = "verification.device.verified";

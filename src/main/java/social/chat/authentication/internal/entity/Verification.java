@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
+import social.chat.authentication.internal.enums.VerificationStatus;
 import social.chat.authentication.internal.enums.VerificationType;
 import social.chat.config.generateId.GenerateId;
 
@@ -31,6 +32,13 @@ public class Verification {
     @Enumerated(EnumType.STRING)
     @Column(name = "type")
     VerificationType verificationType;
+
+    @Column(name = "used_at")
+    Instant usedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    VerificationStatus verificationStatus;
 
     @Column(name = "expired_at")
     Instant expiredAt;
