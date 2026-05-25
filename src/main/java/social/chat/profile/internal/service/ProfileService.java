@@ -6,7 +6,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.authentication.api.AuthImp;
+import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.dto.TokenDto;
 import social.chat.cloudinary.api.CloudinaryImp;
 import social.chat.config.common.GlobalMessage;
@@ -26,12 +26,12 @@ import social.chat.profile.internal.repository.ProfileRepository;
 public class ProfileService {
     ProfileRepository profileRepository;
     ProfileMapper profileMapper;
-    AuthImp authImp;
+    AuthenticationImp authenticationImp;
     CloudinaryImp cloudinaryImp;
 
     @Transactional
     public Response<TokenDto> createProfile(Long userId, String fullName) {
-        authImp.checkUser(userId);
+        authenticationImp.checkUser(userId);
         if(profileRepository.existsById(userId)){
             throw new ConflictException(ProfileMessage.Profile.EXITS);
         }
@@ -42,7 +42,7 @@ public class ProfileService {
         profileRepository.save(profile);
         return Response.success(
                 GlobalMessage.Success.CREATED,
-                authImp.generateToken(userId, Long.MIN_VALUE)
+                authenticationImp.generateToken(userId, Long.MIN_VALUE)
         );
     }
 
@@ -60,7 +60,7 @@ public class ProfileService {
             }
         }
         profileMapper.updateProfile(profileDto, profile);
-        authImp.updateAccountStatusFromPendingToActive(profile.getUserId());
+        authenticationImp.updateAccountStatusFromPendingToActive(profile.getUserId());
         return Response.success(
                 GlobalMessage.Success.UPDATED,
                 null

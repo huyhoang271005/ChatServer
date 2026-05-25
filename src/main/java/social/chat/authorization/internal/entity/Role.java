@@ -1,8 +1,9 @@
-package social.chat.authentication.internal.entity;
+package social.chat.authorization.internal.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import social.chat.authentication.internal.entity.User;
 import social.chat.config.generateId.GenerateId;
 
 import java.time.Instant;
@@ -32,7 +33,4 @@ public class Role {
 
     @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     List<RolePermission> rolePermissions;
-
-    @OneToMany(mappedBy = "role", fetch = FetchType.LAZY)
-    List<User> users;
 }

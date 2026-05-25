@@ -5,12 +5,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.authentication.api.AuthImp;
+import social.chat.authentication.api.AuthenticationImp;
+import social.chat.authentication.api.dto.UserCacheDto;
+import social.chat.authentication.internal.cache.UserCache;
 import social.chat.authentication.internal.enums.AccountStatus;
 import social.chat.authentication.api.dto.TokenDto;
 import social.chat.authentication.internal.AuthenticationMessage;
 import social.chat.authentication.internal.entity.User;
-import social.chat.authentication.internal.repository.RoleRepository;
 import social.chat.authentication.internal.repository.UserRepository;
 import social.chat.authentication.internal.repository.VerificationRepository;
 import social.chat.exception.ConflictException;
@@ -24,12 +25,12 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class AuthLogicService implements AuthImp {
+public class AuthenticationLogicService implements AuthenticationImp {
     UserRepository userRepository;
-    RoleRepository roleRepository;
     VerificationRepository verificationRepository;
     ProfileImp profileImp;
     JwtService jwtService;
+    UserCache userCache;
 
     @Override
     @Transactional(readOnly = true)
@@ -62,21 +63,38 @@ public class AuthLogicService implements AuthImp {
     }
 
     @Override
+    @Transactional
+    public Long checkAccountStatus(Long userId) {
+        UserCacheDto userCacheDto = userCache.getUserCache(userId);
+        if(userCacheDto.getAccountStatus() != AccountStatus.ACTIVE) {
+            switch (userCacheDto.getAccountStatus()) {
+                case AccountStatus.BLOCKED ->
+                        throw new ConflictException(AuthenticationMessage.Account.BLOCKED);
+                case AccountStatus.INACTIVE ->
+                        throw new ConflictException(AuthenticationMessage.Account.INACTIVE);
+                default ->
+                        throw new ConflictException(AuthenticationMessage.Account.INVALID);
+            }
+        }
+        return userCacheDto.getRoleId();
+    }
+
+    @Override
+    @Transactional
+    public void updateUserRoleToRole(Long oldRoleId, Long newRoleId) {
+        userRepository.updateRoleId(oldRoleId, newRoleId);
+    }
+
+    @Override
+    @Transactional
     public void expiredVerification() {
         verificationRepository.expireVerificationPending(Instant.now());
     }
 
     @Override
+    @Transactional
     public void hardDeleteVerification() {
 
-    }
-
-    @Override
-    @Transactional
-    public void hardDeleteRole() {
-        //The role was deleted 7 days ago.
-        roleRepository.deleteRolesWithTimeExpired(Instant.now()
-                .minus(7, ChronoUnit.DAYS));
     }
 
     @Override

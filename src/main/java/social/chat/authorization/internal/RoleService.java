@@ -1,4 +1,4 @@
-package social.chat.authentication.internal.service;
+package social.chat.authorization.internal;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -6,24 +6,25 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.authentication.api.dto.PermissionDto;
-import social.chat.authentication.api.dto.RolePermissionDto;
-import social.chat.authentication.internal.AuthenticationMessage;
-import social.chat.authentication.internal.cache.RoleCache;
-import social.chat.authentication.internal.entity.Permission;
-import social.chat.authentication.internal.entity.Role;
-import social.chat.authentication.internal.entity.RolePermission;
-import social.chat.authentication.internal.mapper.PermissionMapper;
-import social.chat.authentication.internal.mapper.RoleMapper;
-import social.chat.authentication.internal.repository.PermissionRepository;
-import social.chat.authentication.internal.repository.RolePermissionRepository;
-import social.chat.authentication.internal.repository.RoleRepository;
+import social.chat.authentication.api.AuthenticationImp;
+import social.chat.authorization.api.dto.PermissionDto;
+import social.chat.authorization.api.dto.RolePermissionDto;
+import social.chat.authorization.internal.entity.Permission;
+import social.chat.authorization.internal.entity.Role;
+import social.chat.authorization.internal.entity.RolePermission;
+import social.chat.authorization.internal.enums.RoleDefault;
+import social.chat.authorization.internal.mapper.PermissionMapper;
+import social.chat.authorization.internal.mapper.RoleMapper;
+import social.chat.authorization.internal.repository.PermissionRepository;
+import social.chat.authorization.internal.repository.RolePermissionRepository;
+import social.chat.authorization.internal.repository.RoleRepository;
 import social.chat.config.common.GlobalMessage;
 import social.chat.config.common.Response;
 import social.chat.exception.ConflictException;
 import social.chat.exception.EntityNotFoundException;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 
 @Slf4j
@@ -37,11 +38,12 @@ public class RoleService {
     RoleCache roleCache;
     RoleMapper roleMapper;
     PermissionMapper permissionMapper;
+    private final AuthenticationImp authenticationImp;
 
     @Transactional
     public Response<RolePermissionDto> createRole(RolePermissionDto rolePermissionDto) {
         if(roleRepository.existsByRoleName(rolePermissionDto.getRoleName())) {
-            throw new ConflictException(AuthenticationMessage.Role.EXISTS);
+            throw new ConflictException(AuthorizationMessage.Role.EXISTS);
         }
         Role role = roleMapper.toRole(rolePermissionDto);
         List<Permission> permissions = permissionRepository.findAllById(rolePermissionDto.getPermissions()
@@ -75,7 +77,7 @@ public class RoleService {
     @Transactional
     public Response<RolePermissionDto> updateRole(RolePermissionDto rolePermissionDto) {
         Role role = roleRepository.findById(Long.parseLong(rolePermissionDto.getRoleId()))
-                .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Role.NOT_EXISTS));
+                .orElseThrow(() -> new EntityNotFoundException(AuthorizationMessage.Role.NOT_EXISTS));
         List<Permission> permissions = permissionRepository.findAllById(rolePermissionDto.getPermissions()
                 .stream()
                 .map(permissionDto -> Long.valueOf(permissionDto.getPermissionId()))
@@ -106,9 +108,16 @@ public class RoleService {
     @Transactional
     public Response<Void> softDeleteRole(Long roleId) {
         Role role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Role.NOT_EXISTS));
+                .orElseThrow(() -> new EntityNotFoundException(AuthorizationMessage.Role.NOT_EXISTS));
+        if(Arrays.stream(RoleDefault.values())
+                .anyMatch(roleDefault -> roleDefault.name().equals(role.getRoleName()))){
+            throw new ConflictException(AuthorizationMessage.Role.DEFAULT_CANT_REMOVE, role.getRoleName());
+        }
         role.setDeletedAt(Instant.now());
         roleCache.deleteRolePermissionCache(roleId);
+        roleRepository.findByRoleName(RoleDefault.USER.name())
+                        .ifPresent(roleUser -> authenticationImp
+                                .updateUserRoleToRole(roleId, roleUser.getRoleId()));
         return Response.success(
                 GlobalMessage.Success.DELETED,
                 null

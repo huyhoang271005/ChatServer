@@ -1,4 +1,4 @@
-package social.chat.authentication.internal.service;
+package social.chat.authorization.internal;
 
 import jakarta.annotation.PostConstruct;
 import lombok.AccessLevel;
@@ -6,13 +6,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.authentication.internal.enums.PermissionName;
-import social.chat.authentication.internal.enums.RoleDefault;
-import social.chat.authentication.internal.entity.Permission;
-import social.chat.authentication.internal.entity.Role;
-import social.chat.authentication.internal.entity.RolePermission;
-import social.chat.authentication.internal.repository.PermissionRepository;
-import social.chat.authentication.internal.repository.RoleRepository;
+import social.chat.authorization.internal.enums.PermissionName;
+import social.chat.authorization.internal.enums.RoleDefault;
+import social.chat.authorization.internal.entity.Permission;
+import social.chat.authorization.internal.entity.Role;
+import social.chat.authorization.internal.entity.RolePermission;
+import social.chat.authorization.internal.repository.PermissionRepository;
+import social.chat.authorization.internal.repository.RoleRepository;
 
 import java.util.*;
 import java.util.stream.Collectors;

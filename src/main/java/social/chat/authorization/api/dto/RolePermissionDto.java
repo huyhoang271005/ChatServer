@@ -1,9 +1,13 @@
-package social.chat.authentication.api.dto;
+package social.chat.authorization.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.springframework.modulith.NamedInterface;
 
+import java.util.List;
+
+@NamedInterface
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -11,8 +15,8 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class PermissionDto {
-    String permissionId;
-    Long rolePermissionId;
-    String permissionName;
+public class RolePermissionDto {
+    String roleId;
+    String roleName;
+    List<PermissionDto> permissions;
 }

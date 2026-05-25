@@ -8,9 +8,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.dto.TokenDto;
 import social.chat.authentication.internal.cache.UserCache;
-import social.chat.authentication.internal.enums.RoleDefault;
+import social.chat.authorization.api.AuthorizationImp;
+import social.chat.authorization.internal.enums.RoleDefault;
 import social.chat.authentication.internal.AuthenticationMessage;
-import social.chat.authentication.internal.repository.RoleRepository;
+import social.chat.authorization.internal.repository.RoleRepository;
 import social.chat.config.common.GlobalMessage;
 import social.chat.config.common.Response;
 import social.chat.exception.ConflictException;
@@ -29,9 +30,9 @@ import java.util.List;
 public class UserService {
     UserRepository userRepository;
     PasswordEncoder passwordEncoder;
-    RoleRepository roleRepository;
     UserCache userCache;
     ProfileImp profileImp;
+    AuthorizationImp authorizationImp;
 
     @Transactional
     public Response<TokenDto> createUserWithEmail(LoginRequest loginRequest) {
@@ -41,7 +42,7 @@ public class UserService {
         User user = User.builder()
                 .accountStatus(AccountStatus.INACTIVE)
                 .passwordHash(passwordEncoder.encode(loginRequest.getPassword()))
-                .role(roleRepository.findByRoleName(RoleDefault.USER.name()).orElse(null))
+                .roleId(authorizationImp.getRoleIdByRoleUser())
                 .build();
         userRepository.save(user);
         profileImp.createEmail(loginRequest.getEmailName(), user.getUserId(), false);

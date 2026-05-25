@@ -34,4 +34,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
             where v.verificationId = :verificationId
             """)
     Optional<User> findByVerificationId(Long verificationId);
+
+    @Modifying
+    @Query("""
+            update User u
+            set u.roleId = :newRoleId
+            where u.roleId = :oldRoleId
+            """)
+    void updateRoleId(Long newRoleId, Long oldRoleId);
 }

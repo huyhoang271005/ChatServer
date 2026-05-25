@@ -1,7 +1,7 @@
-package social.chat.authentication.internal.repository;
+package social.chat.authorization.internal.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import social.chat.authentication.internal.entity.Permission;
+import social.chat.authorization.internal.entity.Permission;
 
 import java.util.Optional;
 

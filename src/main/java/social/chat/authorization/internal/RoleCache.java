@@ -1,4 +1,4 @@
-package social.chat.authentication.internal.cache;
+package social.chat.authorization.internal;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -8,10 +8,10 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.authentication.api.dto.RolePermissionDto;
-import social.chat.authentication.internal.mapper.PermissionMapper;
-import social.chat.authentication.internal.mapper.RoleMapper;
-import social.chat.authentication.internal.repository.RoleRepository;
+import social.chat.authorization.api.dto.RolePermissionDto;
+import social.chat.authorization.internal.mapper.PermissionMapper;
+import social.chat.authorization.internal.mapper.RoleMapper;
+import social.chat.authorization.internal.repository.RoleRepository;
 
 @Slf4j
 @Service

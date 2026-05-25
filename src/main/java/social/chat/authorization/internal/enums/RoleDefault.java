@@ -1,4 +1,4 @@
-package social.chat.authentication.internal.enums;
+package social.chat.authorization.internal.enums;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;

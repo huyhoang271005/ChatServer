@@ -1,8 +1,8 @@
-package social.chat.authentication.internal.mapper;
+package social.chat.authorization.internal.mapper;
 
 import org.mapstruct.Mapper;
-import social.chat.authentication.api.dto.RolePermissionDto;
-import social.chat.authentication.internal.entity.Role;
+import social.chat.authorization.api.dto.RolePermissionDto;
+import social.chat.authorization.internal.entity.Role;
 
 @Mapper(componentModel = "spring")
 public interface RoleMapper {

@@ -1,4 +1,4 @@
-package social.chat.authentication.internal.entity;
+package social.chat.authorization.internal.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

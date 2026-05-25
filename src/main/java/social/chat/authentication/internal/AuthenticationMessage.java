@@ -17,15 +17,6 @@ public final class AuthenticationMessage {
         public static final String INVALID = "account.invalid";
     }
 
-    public static final class Role {
-        public static final String PENDING_PROFILE = "role.pending-profile";
-        public static final String EXISTS = "role.exists";
-        public static final String NOT_EXISTS = "role.not-exists";
-        public static final String PERMISSION_INVALID = "role.permission-invalid";
-        public static final String PERMISSION_EXISTS = "role.permission-exists";
-        public static final String PERMISSION_NOT_EXISTS = "role.permission-not-exists";
-    }
-
     public static final class Verification {
         public static final String NOT_EXISTS = "verification.not-exists";
         public static final String EXPIRED = "verification.expired";

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
+import social.chat.authorization.internal.entity.Role;
 import social.chat.config.generateId.GenerateId;
 import social.chat.authentication.internal.enums.AccountStatus;
 
@@ -39,11 +40,10 @@ public class User {
     @Column(name = "deleted_at")
     Instant deletedAt;
 
+    @Column(name = "role_id")
+    Long roleId;
+
     @Column(name = "created_at")
     @CreationTimestamp
     Instant createdAt;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id")
-    Role role;
 }
