@@ -1,4 +1,4 @@
-package social.chat.authentication.internal.cache;
+package social.chat.user.internal;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -8,10 +8,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.authentication.internal.enums.AccountStatus;
-import social.chat.authentication.api.dto.UserCacheDto;
-import social.chat.authentication.internal.entity.User;
-import social.chat.authentication.internal.repository.UserRepository;
+import social.chat.user.api.dto.UserCacheDto;
 
 @Slf4j
 @Service

@@ -1,4 +1,4 @@
-package social.chat.authentication.internal.controller;
+package social.chat.user.internal;
 
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -7,8 +7,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import social.chat.authentication.api.dto.LoginRequest;
-import social.chat.authentication.internal.service.UserService;
+import social.chat.user.api.dto.LoginRequest;
 
 @RestController
 @RequiredArgsConstructor

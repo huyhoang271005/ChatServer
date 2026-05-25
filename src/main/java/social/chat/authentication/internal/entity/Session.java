@@ -44,9 +44,8 @@ public class Session {
     @CreationTimestamp
     Instant createdAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    User user;
+    @Column(name = "user_id")
+    Long userId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "device_id")

@@ -3,7 +3,6 @@ package social.chat.authorization.internal.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import social.chat.authentication.internal.entity.User;
 import social.chat.config.generateId.GenerateId;
 
 import java.time.Instant;

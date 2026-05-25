@@ -1,4 +1,4 @@
-package social.chat.authentication.internal.service;
+package social.chat.user.internal;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -7,19 +7,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.dto.TokenDto;
-import social.chat.authentication.internal.cache.UserCache;
 import social.chat.authorization.api.AuthorizationImp;
-import social.chat.authorization.internal.enums.RoleDefault;
-import social.chat.authentication.internal.AuthenticationMessage;
-import social.chat.authorization.internal.repository.RoleRepository;
 import social.chat.config.common.GlobalMessage;
 import social.chat.config.common.Response;
 import social.chat.exception.ConflictException;
-import social.chat.authentication.internal.enums.AccountStatus;
-import social.chat.authentication.api.dto.LoginRequest;
-import social.chat.authentication.internal.entity.User;
-import social.chat.authentication.internal.repository.UserRepository;
+import social.chat.user.api.dto.LoginRequest;
 import social.chat.profile.api.ProfileImp;
+import social.chat.user.UserMessage;
 
 import java.time.Instant;
 import java.util.List;
@@ -37,7 +31,7 @@ public class UserService {
     @Transactional
     public Response<TokenDto> createUserWithEmail(LoginRequest loginRequest) {
         if(profileImp.existsEmailByEmailName(loginRequest.getEmailName())) {
-            throw new ConflictException(AuthenticationMessage.User.EXITS);
+            throw new ConflictException(UserMessage.User.EXITS);
         }
         User user = User.builder()
                 .accountStatus(AccountStatus.INACTIVE)

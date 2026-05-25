@@ -29,8 +29,10 @@ public class ProfileController {
 
     @PostMapping("auth/{userId}")
     public ResponseEntity<?> createProfile(@PathVariable Long userId,
-                                           @Valid @RequestBody FullNameRequest fullNameRequest) {
-        var response = profileService.createProfile(userId, fullNameRequest.getFullName());
+                                           @Valid @RequestBody FullNameRequest fullNameRequest,
+                                           @CookieValue(name = GlobalParamName.DEVICE_ID_COOKIE_NAME)
+                                           Long deviceId) {
+        var response = profileService.createProfile(userId, fullNameRequest.getFullName(), deviceId);
         ResponseCookie cookie = ResponseCookie.from(GlobalParamName.REFRESH_TOKEN_COOKIE_NAME,
                         response.getData().getRefreshToken())
                 .httpOnly(true)

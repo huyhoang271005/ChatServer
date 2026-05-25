@@ -1,9 +1,9 @@
-package social.chat.authentication.api.dto;
+package social.chat.user.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import social.chat.authentication.internal.enums.AccountStatus;
+import social.chat.user.internal.AccountStatus;
 
 @AllArgsConstructor
 @NoArgsConstructor

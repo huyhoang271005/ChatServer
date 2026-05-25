@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.dto.AuthRegexValidation;
@@ -14,9 +13,8 @@ import social.chat.authentication.api.events.AuthRegisteredEvent;
 import social.chat.authentication.internal.AuthenticationMessage;
 import social.chat.authentication.internal.entity.Device;
 import social.chat.authentication.internal.entity.Session;
-import social.chat.authentication.internal.entity.User;
+import social.chat.user.api.UserImp;
 import social.chat.authentication.internal.entity.Verification;
-import social.chat.authentication.internal.enums.AccountStatus;
 import social.chat.authentication.internal.enums.VerificationStatus;
 import social.chat.authentication.internal.enums.VerificationType;
 import social.chat.authentication.internal.repository.*;
@@ -46,17 +44,14 @@ public class VerificationService {
     ApplicationEventPublisher eventPublisher;
     ResponseTranslationAdvice responseTranslationAdvice;
     ProfileImp profileImp;
-    UserRepository userRepository;
+    UserImp userImp;
     DeviceRepository deviceRepository;
     ApplicationProperties applicationProperties;
-    PasswordEncoder passwordEncoder;
 
     @Transactional
     protected Session createSession(Long userId, Long deviceId, String deviceName, String deviceType,
                                     String userAgent, String ipAddress, String location) {
         log.info("Device id is {}", deviceId);
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.User.NOT_EXITS));
         Device device = Optional.ofNullable(deviceId)
                 .flatMap(deviceRepository::findById)
                 .orElseGet(() -> deviceRepository.save(Device.builder()
@@ -64,10 +59,10 @@ public class VerificationService {
                         .deviceType(deviceType)
                         .userAgent(userAgent)
                         .build()));
-        return sessionRepository.findByDeviceAndUser(device, user).orElseGet(() ->
+        return sessionRepository.findByDeviceAndUserId(device, userId).orElseGet(() ->
                 sessionRepository.save(Session.builder()
                         .revoked(true)
-                        .user(user)
+                        .userId(userId)
                         .ipAddress(ipAddress)
                         .device(device)
                         .validated(false)
@@ -114,7 +109,7 @@ public class VerificationService {
                         verification.getVerificationId(),
                 expireAfterHour + " " + responseTranslationAdvice.getString(GlobalMessage.Time.HOUR)
         );
-//        eventPublisher.publishEvent(event);
+        eventPublisher.publishEvent(event);
         return session.getDevice().getDeviceId();
     }
 
@@ -133,7 +128,7 @@ public class VerificationService {
                 }
                 typeId = session.getSessionId();
             }
-            case VERIFICATION_RESET_PASSWORD -> typeId = session.getUser().getUserId();
+            case VERIFICATION_RESET_PASSWORD -> typeId = session.getUserId();
             default -> typeId = null;
         }
         return typeId;
@@ -191,14 +186,12 @@ public class VerificationService {
         if(verification.getExpiredAt().isBefore(Instant.now())){
             throw new ConflictException(AuthenticationMessage.Verification.EXPIRED);
         }
-        User user = userRepository.findByVerificationId(Long.parseLong(verificationDto.getVerificationId()))
-                .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.User.NOT_EXITS));
+        Long userId = sessionRepository.findUserIdByVerificationId(Long.parseLong(verificationDto.getVerificationId()))
+                .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Session.NOT_EXISTS));
         switch (verification.getVerificationType()){
             case VERIFICATION_EMAIL -> {
                 profileImp.verifiedEmail(verification.getTypeId());
-                if(user.getAccountStatus() == AccountStatus.INACTIVE){
-                    user.setAccountStatus(AccountStatus.PENDING_PROFILE);
-                }
+                userImp.updateInactiveToPendingProfile(userId);
             }
             case VERIFICATION_DEVICE -> {
                 Session session = sessionRepository.findById(verification.getTypeId())
@@ -209,7 +202,7 @@ public class VerificationService {
                 if(!verificationDto.getNewPassword().matches(AuthRegexValidation.PASSWORD)){
                     throw new UnprocessableException(AuthenticationMessage.Validation.PASSWORD_INVALID);
                 }
-                user.setPasswordHash(passwordEncoder.encode(verificationDto.getNewPassword()));
+                userImp.updatePasswordHash(userId, verificationDto.getNewPassword());
             }
             default -> {
                 log.error("Invalid verification type {}", verification.getVerificationType());

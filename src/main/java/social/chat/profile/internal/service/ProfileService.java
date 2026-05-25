@@ -18,6 +18,7 @@ import social.chat.profile.api.dto.ProfileDto;
 import social.chat.profile.internal.entity.Profile;
 import social.chat.profile.internal.mapper.ProfileMapper;
 import social.chat.profile.internal.repository.ProfileRepository;
+import social.chat.user.api.UserImp;
 
 @Slf4j
 @Service
@@ -26,12 +27,13 @@ import social.chat.profile.internal.repository.ProfileRepository;
 public class ProfileService {
     ProfileRepository profileRepository;
     ProfileMapper profileMapper;
+    UserImp userImp;
     AuthenticationImp authenticationImp;
     CloudinaryImp cloudinaryImp;
 
     @Transactional
-    public Response<TokenDto> createProfile(Long userId, String fullName) {
-        authenticationImp.checkUser(userId);
+    public Response<TokenDto> createProfile(Long userId, String fullName, Long deviceId) {
+        userImp.checkUser(userId);
         if(profileRepository.existsById(userId)){
             throw new ConflictException(ProfileMessage.Profile.EXITS);
         }
@@ -42,7 +44,7 @@ public class ProfileService {
         profileRepository.save(profile);
         return Response.success(
                 GlobalMessage.Success.CREATED,
-                authenticationImp.generateToken(userId, Long.MIN_VALUE)
+                authenticationImp.generateToken(userId, deviceId)
         );
     }
 
@@ -60,7 +62,7 @@ public class ProfileService {
             }
         }
         profileMapper.updateProfile(profileDto, profile);
-        authenticationImp.updateAccountStatusFromPendingToActive(profile.getUserId());
+        userImp.updateAccountStatusFromPendingToActive(profile.getUserId());
         return Response.success(
                 GlobalMessage.Success.UPDATED,
                 null

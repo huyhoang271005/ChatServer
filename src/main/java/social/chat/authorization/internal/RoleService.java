@@ -6,7 +6,6 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authorization.api.dto.PermissionDto;
 import social.chat.authorization.api.dto.RolePermissionDto;
 import social.chat.authorization.internal.entity.Permission;
@@ -22,6 +21,7 @@ import social.chat.config.common.GlobalMessage;
 import social.chat.config.common.Response;
 import social.chat.exception.ConflictException;
 import social.chat.exception.EntityNotFoundException;
+import social.chat.user.api.UserImp;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -38,7 +38,7 @@ public class RoleService {
     RoleCache roleCache;
     RoleMapper roleMapper;
     PermissionMapper permissionMapper;
-    private final AuthenticationImp authenticationImp;
+    UserImp userImp;
 
     @Transactional
     public Response<RolePermissionDto> createRole(RolePermissionDto rolePermissionDto) {
@@ -116,7 +116,7 @@ public class RoleService {
         role.setDeletedAt(Instant.now());
         roleCache.deleteRolePermissionCache(roleId);
         roleRepository.findByRoleName(RoleDefault.USER.name())
-                        .ifPresent(roleUser -> authenticationImp
+                        .ifPresent(roleUser -> userImp
                                 .updateUserRoleToRole(roleId, roleUser.getRoleId()));
         return Response.success(
                 GlobalMessage.Success.DELETED,

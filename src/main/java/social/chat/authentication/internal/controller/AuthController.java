@@ -11,7 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.web.bind.annotation.*;
 import social.chat.authentication.api.dto.EmailRequest;
-import social.chat.authentication.api.dto.LoginRequest;
+import social.chat.user.api.dto.LoginRequest;
 import social.chat.authentication.api.dto.VerificationDto;
 import social.chat.authentication.internal.service.AuthService;
 import social.chat.authentication.internal.service.VerificationService;

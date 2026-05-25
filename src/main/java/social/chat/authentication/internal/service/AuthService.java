@@ -4,21 +4,19 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.dto.JwtResponse;
 import social.chat.authentication.api.dto.TokenDto;
-import social.chat.authentication.api.dto.LoginRequest;
+import social.chat.exception.ConflictException;
+import social.chat.user.api.dto.LoginRequest;
 import social.chat.authentication.internal.entity.*;
-import social.chat.authentication.internal.enums.AccountStatus;
+import social.chat.user.api.UserImp;
 import social.chat.authentication.internal.enums.TokenType;
 import social.chat.authentication.internal.AuthenticationMessage;
 import social.chat.authentication.internal.repository.*;
 import social.chat.config.common.GlobalMessage;
 import social.chat.config.common.Response;
-import social.chat.exception.ConflictException;
-import social.chat.exception.EntityNotFoundException;
 import social.chat.exception.UnauthorizedException;
 import social.chat.profile.api.ProfileImp;
 import social.chat.profile.api.dto.EmailResponse;
@@ -33,33 +31,29 @@ import java.util.Optional;
 public class AuthService {
     SessionRepository sessionRepository;
     ProfileImp profileImp;
-    UserRepository userRepository;
     DeviceRepository deviceRepository;
     TokenRepository tokenRepository;
-    PasswordEncoder passwordEncoder;
     JwtService jwtService;
+    UserImp userImp;
 
     @Transactional
     public Response<TokenDto> login(LoginRequest loginRequest, Long deviceId) {
         EmailResponse emailResponse = profileImp.getUserByEmail(loginRequest.getEmailName());
         Long userId = emailResponse.getUserId();
-        User user = userRepository.findById(userId).orElseThrow(() ->
-                new EntityNotFoundException(AuthenticationMessage.User.NOT_EXITS));
-        if(!passwordEncoder.matches(loginRequest.getPassword(), user.getPasswordHash())) {
+        boolean hasProfile = profileImp.existsProfileByUserId(userId);
+        if(!userImp.checkPassword(userId, loginRequest.getPassword())) {
             throw new ConflictException(AuthenticationMessage.Validation.PASSWORD_INCORRECT);
         }
-        boolean hasProfile = profileImp.existsProfileByUserId(userId);
-        boolean updateProfile = user.getAccountStatus() != AccountStatus.PENDING_PROFILE;
         TokenDto tokenDto = TokenDto.builder()
                 .userId(String.valueOf(userId))
                 .hasProfile(hasProfile)
                 .verifiedEmail(emailResponse.getVerified())
                 .verifiedDevice(false)
-                .updateProfile(updateProfile)
+                .updateProfile(userImp.checkUpdateProfile(userId))
                 .build();
         Optional.ofNullable(deviceId)
                 .flatMap(deviceRepository::findById)
-                .flatMap(device -> sessionRepository.findByDeviceAndUser(device, user))
+                .flatMap(device -> sessionRepository.findByDeviceAndUserId(device, userId))
                 .ifPresent(session -> {
                     String refreshToken = jwtService.generateJwt(userId, session.getSessionId(), true);
                     Token token = tokenRepository.findBySessionAndTokenType(session, TokenType.REFRESH_TOKEN)

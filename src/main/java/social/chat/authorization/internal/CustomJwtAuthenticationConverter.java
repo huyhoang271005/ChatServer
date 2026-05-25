@@ -13,9 +13,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authorization.api.dto.PermissionDto;
 import social.chat.authorization.api.dto.RolePermissionDto;
+import social.chat.user.api.UserImp;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,13 +25,13 @@ import java.util.stream.Collectors;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CustomJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
     RoleCache roleCache;
-    AuthenticationImp authenticationImp;
+    UserImp userImp;
 
     @Transactional(readOnly = true)
     @Override
     public @Nullable AbstractAuthenticationToken convert(@NonNull Jwt source) {
         Long userId = Long.valueOf(source.getSubject());
-        Long roleId = authenticationImp.checkAccountStatus(userId);
+        Long roleId = userImp.getRoleIdAndCheckAccountStatus(userId);
         RolePermissionDto rolePermissionDto = roleCache.getRolePermissionsCache(roleId);
         List<GrantedAuthority> authorities = rolePermissionDto.getPermissions()
                 .stream()

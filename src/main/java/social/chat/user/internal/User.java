@@ -1,12 +1,10 @@
-package social.chat.authentication.internal.entity;
+package social.chat.user.internal;
 
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
-import social.chat.authorization.internal.entity.Role;
 import social.chat.config.generateId.GenerateId;
-import social.chat.authentication.internal.enums.AccountStatus;
 
 import java.time.Instant;
 
