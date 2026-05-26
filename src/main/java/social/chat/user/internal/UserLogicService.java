@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import social.chat.authentication.api.AuthenticationImp;
 import social.chat.user.api.dto.UserCacheDto;
 import social.chat.exception.ConflictException;
 import social.chat.exception.EntityNotFoundException;
@@ -24,6 +25,7 @@ public class UserLogicService implements UserImp {
     UserRepository userRepository;
     UserCache userCache;
     ProfileImp profileImp;
+    AuthenticationImp authenticationImp;
     PasswordEncoder passwordEncoder;
 
     @Override
@@ -111,5 +113,6 @@ public class UserLogicService implements UserImp {
                 .minus(7, ChronoUnit.DAYS));
         userRepository.deleteAllById(userIds);
         profileImp.deleteProfileAndEmails(userIds);
+        authenticationImp.hardDeleteSessionByUserIds(userIds);
     }
 }

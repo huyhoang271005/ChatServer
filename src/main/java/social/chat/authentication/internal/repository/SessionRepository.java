@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Query;
 import social.chat.authentication.internal.entity.Device;
 import social.chat.authentication.internal.entity.Session;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface SessionRepository extends JpaRepository<Session, Long> {
@@ -16,4 +17,6 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
             where v.verificationId = :verificationId
             """)
     Optional<Long> findUserIdByVerificationId(Long verificationId);
+
+    void deleteByUserIdIn(List<Long> userIds);
 }

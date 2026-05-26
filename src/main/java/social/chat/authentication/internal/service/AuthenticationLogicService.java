@@ -16,6 +16,7 @@ import social.chat.exception.ConflictException;
 import social.chat.exception.EntityNotFoundException;
 
 import java.time.Instant;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +39,12 @@ public class AuthenticationLogicService implements AuthenticationImp {
                 .refreshToken(jwtService.generateJwt(userId, sessionId, true))
                 .hasProfile(true)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void hardDeleteSessionByUserIds(List<Long> userIds) {
+        sessionRepository.deleteByUserIdIn(userIds);
     }
 
     @Override
