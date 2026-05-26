@@ -10,7 +10,7 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "emails", indexes = {
-        @Index(name = "idx_emails_email", columnList = "email"),
+        @Index(name = "idx_emails_email_name", columnList = "email_name"),
         @Index(name = "idx_emails_created_at", columnList = "created_at")
 })
 @AllArgsConstructor
@@ -25,7 +25,7 @@ public class Email {
     @Column(name = "email_id")
     Long emailId;
 
-    @Column(columnDefinition = "VARCHAR(125)")
+    @Column(name = "email_name", columnDefinition = "VARCHAR(125)")
     String emailName;
 
     Boolean verified;

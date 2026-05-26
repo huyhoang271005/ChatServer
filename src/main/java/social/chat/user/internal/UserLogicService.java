@@ -102,7 +102,15 @@ public class UserLogicService implements UserImp {
     public boolean checkUpdateProfile(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(() ->
                 new EntityNotFoundException(UserMessage.User.NOT_EXITS));
-        return user.getAccountStatus() == AccountStatus.PENDING_PROFILE;
+        return user.getAccountStatus() != AccountStatus.PENDING_PROFILE;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isInactive(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException(UserMessage.User.NOT_EXITS));
+        return user.getAccountStatus() == AccountStatus.INACTIVE;
     }
 
     @Override

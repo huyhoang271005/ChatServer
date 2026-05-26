@@ -1,4 +1,4 @@
-package social.chat.authentication.internal.enums;
+package social.chat.verification.internal.enums;
 
 public enum VerificationStatus {
     PENDING,

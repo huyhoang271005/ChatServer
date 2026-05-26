@@ -51,6 +51,7 @@ public class SecurityConfig {
         return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .securityMatcher("/auth/**", "/users/auth/**", "/profiles/auth/**",
+                        "/verifications/**",
                         "/v3/api-docs/**",         // Đường dẫn lấy file json cấu hình OpenAPI
                         "/v3/api-docs.yaml",       // Đường dẫn lấy file yaml (nếu cần)
                         "/swagger-ui/**",          // Giao diện chính Swagger UI

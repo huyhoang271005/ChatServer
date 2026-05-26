@@ -1,11 +1,9 @@
-package social.chat.authentication.internal.repository;
+package social.chat.verification.internal;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import social.chat.authentication.internal.entity.Session;
-import social.chat.authentication.internal.entity.Verification;
-import social.chat.authentication.internal.enums.VerificationType;
+import social.chat.verification.internal.enums.VerificationType;
 
 import java.time.Instant;
 import java.util.List;
@@ -30,7 +28,9 @@ public interface VerificationRepository extends JpaRepository<Verification, Long
             """)
     void expireVerificationPending(Instant timeNow);
 
-    List<Verification> findBySessionAndVerificationTypeAndTypeIdAndExpiredAtAfterOrderByCreatedAtDesc(
-            Session session, VerificationType verificationType, Long typeId, Instant timeNow
+    List<Verification> findBySessionIdAndVerificationTypeAndTypeIdAndExpiredAtAfterOrderByCreatedAtDesc(
+            Long sessionId, VerificationType verificationType, Long typeId, Instant timeNow
     );
+
+    void deleteBySessionIdIn(List<Long> sessionIds);
 }

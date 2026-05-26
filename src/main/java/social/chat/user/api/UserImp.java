@@ -12,5 +12,6 @@ public interface UserImp {
     void updatePasswordHash(Long userId, String newPassword);
     boolean checkPassword(Long userId, String password);
     boolean checkUpdateProfile(Long userId);
+    boolean isInactive(Long userId);
     void hardDeleteUser();
 }

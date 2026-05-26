@@ -85,7 +85,9 @@ public class GlobalExceptionHandle {
                 .stream()
                 .map(DefaultMessageSourceResolvable::getDefaultMessage)
                 .toList();
-        log.error(String.join(", ", errorsString));
+        log.error(String.join(", ", errorsString.stream()
+                .map(responseTranslationAdvice::getString)
+                .toList()));
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(
                 new Response<>(
                         false,

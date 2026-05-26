@@ -1,11 +1,12 @@
-package social.chat.authentication.internal.entity;
+package social.chat.verification.internal;
 
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
-import social.chat.authentication.internal.enums.VerificationStatus;
-import social.chat.authentication.internal.enums.VerificationType;
+import social.chat.authentication.internal.entity.Session;
+import social.chat.verification.internal.enums.VerificationStatus;
+import social.chat.verification.internal.enums.VerificationType;
 import social.chat.config.generateId.GenerateId;
 
 import java.time.Instant;
@@ -43,11 +44,10 @@ public class Verification {
     @Column(name = "expired_at")
     Instant expiredAt;
 
+    @Column(name = "session_id")
+    Long sessionId;
+
     @Column(name = "created_at", updatable = false)
     @CreationTimestamp
     Instant createdAt;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id")
-    Session session;
 }

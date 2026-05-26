@@ -1,4 +1,4 @@
-package social.chat.authentication.api.events;
+package social.chat.verification.api.events;
 
 import org.springframework.modulith.NamedInterface;
 

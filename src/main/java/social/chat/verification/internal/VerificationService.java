@@ -1,4 +1,4 @@
-package social.chat.authentication.internal.service;
+package social.chat.verification.internal;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -7,16 +7,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.dto.AuthRegexValidation;
-import social.chat.authentication.api.dto.VerificationDto;
-import social.chat.authentication.api.events.AuthRegisteredEvent;
-import social.chat.authentication.internal.AuthenticationMessage;
-import social.chat.authentication.internal.entity.Device;
-import social.chat.authentication.internal.entity.Session;
+import social.chat.authentication.api.dto.SessionValidation;
+import social.chat.verification.api.dto.VerificationDto;
+import social.chat.verification.api.events.AuthRegisteredEvent;
 import social.chat.user.api.UserImp;
-import social.chat.authentication.internal.entity.Verification;
-import social.chat.authentication.internal.enums.VerificationStatus;
-import social.chat.authentication.internal.enums.VerificationType;
+import social.chat.verification.internal.enums.VerificationStatus;
+import social.chat.verification.internal.enums.VerificationType;
 import social.chat.authentication.internal.repository.*;
 import social.chat.config.common.ApplicationProperties;
 import social.chat.config.common.GlobalMessage;
@@ -32,7 +30,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -40,35 +37,12 @@ import java.util.Optional;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class VerificationService {
     VerificationRepository verificationRepository;
-    SessionRepository sessionRepository;
     ApplicationEventPublisher eventPublisher;
     ResponseTranslationAdvice responseTranslationAdvice;
     ProfileImp profileImp;
     UserImp userImp;
-    DeviceRepository deviceRepository;
+    AuthenticationImp authenticationImp;
     ApplicationProperties applicationProperties;
-
-    @Transactional
-    protected Session createSession(Long userId, Long deviceId, String deviceName, String deviceType,
-                                    String userAgent, String ipAddress, String location) {
-        log.info("Device id is {}", deviceId);
-        Device device = Optional.ofNullable(deviceId)
-                .flatMap(deviceRepository::findById)
-                .orElseGet(() -> deviceRepository.save(Device.builder()
-                        .deviceName(deviceName)
-                        .deviceType(deviceType)
-                        .userAgent(userAgent)
-                        .build()));
-        return sessionRepository.findByDeviceAndUserId(device, userId).orElseGet(() ->
-                sessionRepository.save(Session.builder()
-                        .revoked(true)
-                        .userId(userId)
-                        .ipAddress(ipAddress)
-                        .device(device)
-                        .validated(false)
-                        .location(location)
-                        .build()));
-    }
 
     @Transactional
     public Long sendEmailVerification(VerificationType verificationType, String title,
@@ -76,12 +50,12 @@ public class VerificationService {
                                       String deviceType, String userAgent, String ipAddress,
                                       String location, int expireAfterHour, String webUrl) {
         EmailResponse emailResponse = profileImp.getUserByEmail(emailName);
-        Session session = createSession(emailResponse.getUserId(), deviceId, deviceName, deviceType,
+        SessionValidation sessionValidation = authenticationImp.createSessionByDevice(emailResponse.getUserId(), deviceId, deviceName, deviceType,
                 userAgent, ipAddress, location);
-        Long typeId = getTypeId(verificationType, emailResponse, session);
+        Long typeId = getTypeId(verificationType, emailResponse, sessionValidation);
         List<Verification> verifications = verificationRepository
-                .findBySessionAndVerificationTypeAndTypeIdAndExpiredAtAfterOrderByCreatedAtDesc(
-                        session, verificationType, typeId, Instant.now()
+                .findBySessionIdAndVerificationTypeAndTypeIdAndExpiredAtAfterOrderByCreatedAtDesc(
+                        sessionValidation.getSessionId(), verificationType, typeId, Instant.now()
                 );
         if(!verifications.isEmpty()) {
             long timeWaited = Duration.between(verifications.getFirst().getCreatedAt(),
@@ -93,7 +67,7 @@ public class VerificationService {
         }
         verificationRepository.cancelVerificationPending(typeId, Instant.now());
         Verification verification = Verification.builder()
-                .session(session)
+                .sessionId(sessionValidation.getSessionId())
                 .verificationType(verificationType)
                 .typeId(typeId)
                 .verificationStatus(VerificationStatus.PENDING)
@@ -102,7 +76,7 @@ public class VerificationService {
         verificationRepository.save(verification);
         String fullName = profileImp.getFullName(emailResponse.getUserId());
         AuthRegisteredEvent event = new AuthRegisteredEvent(emailName,
-                responseTranslationAdvice.getString(AuthenticationMessage.SECURITY),
+                responseTranslationAdvice.getString(VerificationMessage.SECURITY),
                 fullName != null ? fullName : emailName,
                 responseTranslationAdvice.getString(title),
                 applicationProperties.getFrontendUrl() + "/" + webUrl + "?verificationId=" +
@@ -110,25 +84,25 @@ public class VerificationService {
                 expireAfterHour + " " + responseTranslationAdvice.getString(GlobalMessage.Time.HOUR)
         );
         eventPublisher.publishEvent(event);
-        return session.getDevice().getDeviceId();
+        return sessionValidation.getDeviceId();
     }
 
-    private Long getTypeId(VerificationType verificationType, EmailResponse emailResponse, Session session) {
+    private Long getTypeId(VerificationType verificationType, EmailResponse emailResponse, SessionValidation sessionValidation) {
         Long typeId;
         switch(verificationType) {
             case VERIFICATION_EMAIL -> {
-                if(!emailResponse.getVerified()) {
-                    throw new ConflictException(AuthenticationMessage.Verification.EMAIL_VERIFIED);
+                if(emailResponse.getVerified()) {
+                    throw new ConflictException(VerificationMessage.Verification.EMAIL_VERIFIED);
                 }
                 typeId = emailResponse.getEmailId();
             }
             case VERIFICATION_DEVICE -> {
-                if(session.getValidated()) {
-                    throw new ConflictException(AuthenticationMessage.Verification.DEVICE_VERIFIED);
+                if(sessionValidation.isValidated()) {
+                    throw new ConflictException(VerificationMessage.Session.VERIFIED);
                 }
-                typeId = session.getSessionId();
+                typeId = sessionValidation.getSessionId();
             }
-            case VERIFICATION_RESET_PASSWORD -> typeId = session.getUserId();
+            case VERIFICATION_RESET_PASSWORD -> typeId = sessionValidation.getUserId();
             default -> typeId = null;
         }
         return typeId;
@@ -139,11 +113,12 @@ public class VerificationService {
                                                 String deviceType, String userAgent, String ipAddress,
                                                 String location) {
         return Response.success(
-                AuthenticationMessage.EmailSender.SUCCESS,
-                sendEmailVerification(VerificationType.VERIFICATION_DEVICE,
-                        AuthenticationMessage.Verification.EMAIL_VERIFICATION,
+                VerificationMessage.EmailSender.SUCCESS,
+                sendEmailVerification(VerificationType.VERIFICATION_EMAIL,
+                        VerificationMessage.Verification.EMAIL_VERIFICATION,
                         emailName, deviceId, deviceName, deviceType, userAgent, ipAddress,
-                        location, 24, "#verify")
+                        location, 24, "#verify"),
+                emailName
         );
     }
 
@@ -152,11 +127,12 @@ public class VerificationService {
                                                  String deviceType, String userAgent, String ipAddress,
                                                  String location) {
         return Response.success(
-                AuthenticationMessage.EmailSender.SUCCESS,
+                VerificationMessage.EmailSender.SUCCESS,
                 sendEmailVerification(VerificationType.VERIFICATION_DEVICE,
-                        AuthenticationMessage.Verification.DEVICE_VERIFICATION,
+                        VerificationMessage.Verification.DEVICE_VERIFICATION,
                         emailName, deviceId, deviceName, deviceType, userAgent, ipAddress,
-                        location, 24, "#verify")
+                        location, 24, "#verify"),
+                emailName
         );
     }
 
@@ -165,11 +141,12 @@ public class VerificationService {
                                                          String deviceType, String userAgent, String ipAddress,
                                                          String location){
         return Response.success(
-                AuthenticationMessage.EmailSender.SUCCESS,
+                VerificationMessage.EmailSender.SUCCESS,
                 sendEmailVerification(VerificationType.VERIFICATION_RESET_PASSWORD,
-                        AuthenticationMessage.Verification.RESET_PASSWORD_VERIFICATION,
+                        VerificationMessage.Verification.RESET_PASSWORD_VERIFICATION,
                         emailName, deviceId, deviceName, deviceType, userAgent, ipAddress,
-                        location, 1, "#reset-password")
+                        location, 1, "#reset-password"),
+                emailName
         );
     }
 
@@ -177,30 +154,29 @@ public class VerificationService {
     public Response<Void> verify(VerificationDto verificationDto) {
         Verification verification = verificationRepository
                 .findById(Long.parseLong(verificationDto.getVerificationId()))
-                .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Verification.NOT_EXISTS));
+                .orElseThrow(() -> new EntityNotFoundException(VerificationMessage.Verification.NOT_EXISTS));
         if(verification.getVerificationStatus() == VerificationStatus.USED){
-            throw new ConflictException(AuthenticationMessage.Verification.USED);
+            throw new ConflictException(VerificationMessage.Verification.USED);
         } else if(verification.getVerificationStatus() == VerificationStatus.CANCELLED){
-            throw new ConflictException(AuthenticationMessage.Verification.INVALID);
+            throw new ConflictException(VerificationMessage.Verification.INVALID);
         }
         if(verification.getExpiredAt().isBefore(Instant.now())){
-            throw new ConflictException(AuthenticationMessage.Verification.EXPIRED);
+            throw new ConflictException(VerificationMessage.Verification.EXPIRED);
         }
-        Long userId = sessionRepository.findUserIdByVerificationId(Long.parseLong(verificationDto.getVerificationId()))
-                .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Session.NOT_EXISTS));
+        Long userId = authenticationImp.getUserIdBySessionId(verification.getSessionId());
         switch (verification.getVerificationType()){
             case VERIFICATION_EMAIL -> {
                 profileImp.verifiedEmail(verification.getTypeId());
+                if(userImp.isInactive(userId)){
+                    authenticationImp.updateValidatedSession(verification.getSessionId(), true);
+                }
                 userImp.updateInactiveToPendingProfile(userId);
             }
-            case VERIFICATION_DEVICE -> {
-                Session session = sessionRepository.findById(verification.getTypeId())
-                        .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Session.NOT_EXISTS));
-                session.setValidated(true);
-            }
+            case VERIFICATION_DEVICE -> authenticationImp.updateValidatedSession(verification.getSessionId(),
+                    true);
             case VERIFICATION_RESET_PASSWORD -> {
                 if(!verificationDto.getNewPassword().matches(AuthRegexValidation.PASSWORD)){
-                    throw new UnprocessableException(AuthenticationMessage.Validation.PASSWORD_INVALID);
+                    throw new UnprocessableException(VerificationMessage.Validation.PASSWORD_INVALID);
                 }
                 userImp.updatePasswordHash(userId, verificationDto.getNewPassword());
             }
@@ -212,7 +188,7 @@ public class VerificationService {
         verification.setVerificationStatus(VerificationStatus.USED);
         verification.setUsedAt(Instant.now());
         return Response.success(
-                AuthenticationMessage.Verification.SUCCESS,
+                VerificationMessage.Verification.SUCCESS,
                 null
         );
     }

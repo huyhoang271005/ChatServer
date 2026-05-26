@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.JwtProperties;
 import social.chat.config.common.GlobalParamName;
 import social.chat.profile.api.dto.FullNameRequest;
@@ -25,6 +26,7 @@ import java.time.Duration;
 @RequestMapping("profiles")
 public class ProfileController {
     ProfileService profileService;
+    AuthenticationImp authenticationImp;
     JwtProperties  jwtProperties;
 
     @PostMapping("auth/{userId}")
@@ -33,14 +35,8 @@ public class ProfileController {
                                            @CookieValue(name = GlobalParamName.DEVICE_ID_COOKIE_NAME)
                                            Long deviceId) {
         var response = profileService.createProfile(userId, fullNameRequest.getFullName(), deviceId);
-        ResponseCookie cookie = ResponseCookie.from(GlobalParamName.REFRESH_TOKEN_COOKIE_NAME,
-                        response.getData().getRefreshToken())
-                .httpOnly(true)
-                .secure(true)
-                .path("/")
-                .sameSite("None")
-                .maxAge(Duration.ofDays(jwtProperties.getRefreshTokenExpire()))
-                .build();
+        ResponseCookie cookie = authenticationImp.getResponseCookie(GlobalParamName.REFRESH_TOKEN_COOKIE_NAME,
+                response.getData().getRefreshToken(), Duration.ofSeconds(jwtProperties.getRefreshTokenExpire()));
         response.getData().setRefreshToken(null);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())

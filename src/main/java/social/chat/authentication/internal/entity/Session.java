@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import social.chat.config.generateId.GenerateId;
+import social.chat.verification.internal.Verification;
 
 import java.time.Instant;
 import java.util.List;
@@ -34,10 +35,10 @@ public class Session {
 
     Boolean revoked;
 
-    @Column(name = "ip-address", columnDefinition = "VARCHAR(50)")
+    @Column(name = "ip_address", columnDefinition = "VARCHAR(50)")
     String ipAddress;
 
-    @Column(name = "last-login")
+    @Column(name = "last_login")
     Instant lastLogin;
 
     @Column(name = "created_at")
@@ -53,7 +54,4 @@ public class Session {
 
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     List<Token> tokens;
-
-    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    List<Verification> verifications;
 }

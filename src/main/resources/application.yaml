@@ -13,7 +13,7 @@ spring:
     virtual:
       enabled: true
   messages:
-    basename: messages/profile/profile, messages/authentication/authentication, messages/global/global
+    basename: messages/profile/profile, messages/authentication/authentication, messages/global/global, messages/authorization/authorization, messages/verification/verification
     encoding: UTF-8
     fallback-to-system-locale: false
   jpa:
