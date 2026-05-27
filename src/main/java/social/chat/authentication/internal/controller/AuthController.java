@@ -11,10 +11,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.JwtProperties;
-import social.chat.user.api.dto.LoginRequest;
+import social.chat.authentication.api.dto.FirebaseLoginRequest;
+import social.chat.authentication.api.dto.LoginRequest;
 import social.chat.authentication.internal.service.AuthService;
-import social.chat.config.common.GlobalParamName;
-import social.chat.config.common.Response;
+import social.chat.shared.common.GlobalParamName;
+import social.chat.shared.dto.Response;
 
 import java.time.Duration;
 
@@ -39,6 +40,25 @@ public class AuthController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(response);
+    }
+
+    @PostMapping("login/oauth2")
+    public ResponseEntity<Response<?>> loginGoogle(@Valid @RequestBody FirebaseLoginRequest firebaseLoginRequest,
+                                                   @CookieValue(name = GlobalParamName.DEVICE_ID_COOKIE_NAME)
+                                                   Long deviceId) {
+        var response = authService.oauth2Login(firebaseLoginRequest, deviceId, null, null,
+                null, null, null);
+        ResponseCookie cookieDevice = authenticationImp.getResponseCookie(GlobalParamName.DEVICE_ID_COOKIE_NAME,
+                response.getData().getDeviceId(), Duration.ofDays(3650));
+        ResponseCookie cookieToken = authenticationImp.getResponseCookie(GlobalParamName.REFRESH_TOKEN_COOKIE_NAME,
+                response.getData().getRefreshToken(), Duration.ofSeconds(jwtProperties.getRefreshTokenExpire()));
+        response.getData().setRefreshToken(null);
+        response.getData().setDeviceId(null);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .header(HttpHeaders.SET_COOKIE, cookieDevice.toString())
+                .header(HttpHeaders.SET_COOKIE, cookieToken.toString())
                 .body(response);
     }
 

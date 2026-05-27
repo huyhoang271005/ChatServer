@@ -13,6 +13,7 @@ import lombok.experimental.FieldDefaults;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TokenDto {
     String userId;
+    String deviceId;
     Boolean verifiedEmail;
     Boolean verifiedDevice;
     String accessToken;

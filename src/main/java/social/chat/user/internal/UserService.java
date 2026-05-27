@@ -8,10 +8,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.dto.TokenDto;
 import social.chat.authorization.api.AuthorizationImp;
-import social.chat.config.common.GlobalMessage;
-import social.chat.config.common.Response;
-import social.chat.exception.ConflictException;
-import social.chat.user.api.dto.LoginRequest;
+import social.chat.shared.common.GlobalMessage;
+import social.chat.shared.dto.Response;
+import social.chat.shared.exception.ConflictException;
+import social.chat.authentication.api.dto.LoginRequest;
 import social.chat.profile.api.ProfileImp;
 import social.chat.user.UserMessage;
 
@@ -49,17 +49,12 @@ public class UserService {
     }
 
     @Transactional
-    public Response<Void> deleteUser(Long userId) {
-        softDeleteUser(List.of(userId));
+    public Response<Void> SoftDeleteUser(Long userId) {
+        userRepository.softDelete(Instant.now(), List.of(userId));
         userCache.updateUserCache(userId, null, null);
         return Response.success(
                 GlobalMessage.Success.DELETED,
                 null
         );
-    }
-
-    @Transactional
-    public void softDeleteUser(List<Long> userIds) {
-        userRepository.softDelete(Instant.now(), userIds);
     }
 }

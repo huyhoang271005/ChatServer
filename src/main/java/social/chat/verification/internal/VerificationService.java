@@ -11,18 +11,17 @@ import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.dto.AuthRegexValidation;
 import social.chat.authentication.api.dto.SessionValidation;
 import social.chat.verification.api.dto.VerificationDto;
-import social.chat.verification.api.events.AuthRegisteredEvent;
+import social.chat.verification.api.events.VerificationSendEmailRegisteredEvent;
 import social.chat.user.api.UserImp;
 import social.chat.verification.internal.enums.VerificationStatus;
 import social.chat.verification.internal.enums.VerificationType;
-import social.chat.authentication.internal.repository.*;
-import social.chat.config.common.ApplicationProperties;
-import social.chat.config.common.GlobalMessage;
-import social.chat.config.common.Response;
-import social.chat.config.common.ResponseTranslationAdvice;
-import social.chat.exception.ConflictException;
-import social.chat.exception.EntityNotFoundException;
-import social.chat.exception.UnprocessableException;
+import social.chat.shared.common.ApplicationProperties;
+import social.chat.shared.common.GlobalMessage;
+import social.chat.shared.dto.Response;
+import social.chat.shared.common.ResponseTranslationAdvice;
+import social.chat.shared.exception.ConflictException;
+import social.chat.shared.exception.EntityNotFoundException;
+import social.chat.shared.exception.UnprocessableException;
 import social.chat.profile.api.ProfileImp;
 import social.chat.profile.api.dto.EmailResponse;
 
@@ -51,7 +50,7 @@ public class VerificationService {
                                       String location, int expireAfterHour, String webUrl) {
         EmailResponse emailResponse = profileImp.getUserByEmail(emailName);
         SessionValidation sessionValidation = authenticationImp.createSessionByDevice(emailResponse.getUserId(), deviceId, deviceName, deviceType,
-                userAgent, ipAddress, location);
+                userAgent, ipAddress, location, true, false);
         Long typeId = getTypeId(verificationType, emailResponse, sessionValidation);
         List<Verification> verifications = verificationRepository
                 .findBySessionIdAndVerificationTypeAndTypeIdAndExpiredAtAfterOrderByCreatedAtDesc(
@@ -75,7 +74,7 @@ public class VerificationService {
                 .build();
         verificationRepository.save(verification);
         String fullName = profileImp.getFullName(emailResponse.getUserId());
-        AuthRegisteredEvent event = new AuthRegisteredEvent(emailName,
+        VerificationSendEmailRegisteredEvent event = new VerificationSendEmailRegisteredEvent(emailName,
                 responseTranslationAdvice.getString(VerificationMessage.SECURITY),
                 fullName != null ? fullName : emailName,
                 responseTranslationAdvice.getString(title),

@@ -3,20 +3,24 @@ package social.chat.user.internal;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.AuthenticationImp;
+import social.chat.authentication.api.events.AuthUserIdsRegisteredEvent;
+import social.chat.authorization.api.AuthorizationImp;
+import social.chat.profile.api.events.ProfileUserIdsRegisteredEvent;
 import social.chat.user.api.dto.UserCacheDto;
-import social.chat.exception.ConflictException;
-import social.chat.exception.EntityNotFoundException;
-import social.chat.profile.api.ProfileImp;
+import social.chat.shared.exception.ConflictException;
+import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.user.UserMessage;
 import social.chat.user.api.UserImp;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -24,9 +28,10 @@ import java.util.List;
 public class UserLogicService implements UserImp {
     UserRepository userRepository;
     UserCache userCache;
-    ProfileImp profileImp;
     AuthenticationImp authenticationImp;
     PasswordEncoder passwordEncoder;
+    AuthorizationImp authorizationImp;
+    ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -37,6 +42,17 @@ public class UserLogicService implements UserImp {
             throw new ConflictException(UserMessage.User.NOT_VERIFIED);
         }
 
+    }
+
+    @Override
+    @Transactional
+    public Long getAndCreateUser() {
+        return userRepository.save(User.builder()
+                        .accountStatus(AccountStatus.PENDING_PROFILE)
+                        .passwordHash(passwordEncoder.encode(UUID.randomUUID().toString()))
+                        .roleId(authorizationImp.getRoleIdByRoleUser())
+                        .build())
+                .getUserId();
     }
 
     @Override
@@ -120,7 +136,9 @@ public class UserLogicService implements UserImp {
         List<Long> userIds = userRepository.findUserIdsExpired(Instant.now()
                 .minus(7, ChronoUnit.DAYS));
         userRepository.deleteAllById(userIds);
-        profileImp.deleteProfileAndEmails(userIds);
-        authenticationImp.hardDeleteSessionByUserIds(userIds);
+        ProfileUserIdsRegisteredEvent profileUserIdsRegisteredEvent = new ProfileUserIdsRegisteredEvent(userIds);
+        applicationEventPublisher.publishEvent(profileUserIdsRegisteredEvent);
+        AuthUserIdsRegisteredEvent authUserIdsRegisteredEvent = new AuthUserIdsRegisteredEvent(userIds);
+        applicationEventPublisher.publishEvent(authUserIdsRegisteredEvent);
     }
 }

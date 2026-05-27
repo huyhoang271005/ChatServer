@@ -1,14 +1,12 @@
 package social.chat.cloudinary.internal;
 
 import com.cloudinary.Cloudinary;
-import com.cloudinary.utils.ObjectUtils;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
-import social.chat.cloudinary.api.CloudinaryImp;
-import social.chat.config.common.GlobalMessage;
-import social.chat.config.common.Response;
+import social.chat.shared.common.GlobalMessage;
+import social.chat.shared.dto.Response;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,33 +14,11 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class CloudinaryService implements CloudinaryImp {
+public class CloudinaryService {
     CloudinaryProperties cloudinaryProperties;
-
-    @Override
-    public boolean deleteImage(String publicId) {
-        Cloudinary cloudinary = new Cloudinary(ObjectUtils.asMap(
-                "cloud_name", cloudinaryProperties.getCloudName(),
-                "api_key", cloudinaryProperties.getApiKey(),
-                "api_secret", cloudinaryProperties.getApiSecret()
-        ));
-        boolean response;
-        try {
-            Map<?, ?> result = cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
-            response = "ok".equals(result.get("result"));
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
-        return response;
-    }
+    Cloudinary cloudinary;
 
     public Response<Map<String, Object>> generateUploadSignature(String folderCloudinary) {
-        Cloudinary cloudinary = new Cloudinary(ObjectUtils.asMap(
-                "cloud_name", cloudinaryProperties.getCloudName(),
-                "api_key", cloudinaryProperties.getApiKey(),
-                "api_secret", cloudinaryProperties.getApiSecret()
-        ));
 
         long timestamp = System.currentTimeMillis() / 1000L;
 

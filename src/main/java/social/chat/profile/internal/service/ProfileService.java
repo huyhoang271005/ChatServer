@@ -4,21 +4,24 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.dto.TokenDto;
-import social.chat.cloudinary.api.CloudinaryImp;
-import social.chat.config.common.GlobalMessage;
-import social.chat.config.common.Response;
-import social.chat.exception.ConflictException;
-import social.chat.exception.EntityNotFoundException;
+import social.chat.cloudinary.api.events.CloudinaryRegisteredEvent;
+import social.chat.shared.common.GlobalMessage;
+import social.chat.shared.dto.Response;
+import social.chat.shared.exception.ConflictException;
+import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.profile.internal.ProfileMessage;
 import social.chat.profile.api.dto.ProfileDto;
 import social.chat.profile.internal.entity.Profile;
 import social.chat.profile.internal.mapper.ProfileMapper;
 import social.chat.profile.internal.repository.ProfileRepository;
 import social.chat.user.api.UserImp;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -29,7 +32,7 @@ public class ProfileService {
     ProfileMapper profileMapper;
     UserImp userImp;
     AuthenticationImp authenticationImp;
-    CloudinaryImp cloudinaryImp;
+    ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional
     public Response<TokenDto> createProfile(Long userId, String fullName, Long deviceId) {
@@ -56,10 +59,8 @@ public class ProfileService {
             profile.setFullName(profileDto.getFullName());
         }
         if( profileDto.getAvatarId() != null && !profileDto.getAvatarId().equals(profile.getAvatarId())) {
-            if(!cloudinaryImp.deleteImage(profile.getAvatarId())){
-                log.error("Delete image {} failed", profile.getAvatarId());
-                throw new ConflictException(GlobalMessage.Error.INTERNAL);
-            }
+            CloudinaryRegisteredEvent event = new CloudinaryRegisteredEvent(List.of(profile.getAvatarId()));
+            applicationEventPublisher.publishEvent(event);
         }
         profileMapper.updateProfile(profileDto, profile);
         userImp.updateAccountStatusFromPendingToActive(profile.getUserId());

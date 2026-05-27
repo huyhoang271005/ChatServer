@@ -4,10 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
-import social.chat.authentication.internal.entity.Session;
 import social.chat.verification.internal.enums.VerificationStatus;
 import social.chat.verification.internal.enums.VerificationType;
-import social.chat.config.generateId.GenerateId;
+import social.chat.shared.generateId.GenerateId;
 
 import java.time.Instant;
 

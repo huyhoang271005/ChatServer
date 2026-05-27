@@ -11,8 +11,8 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.web.bind.annotation.*;
 import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.dto.EmailRequest;
-import social.chat.config.common.GlobalParamName;
-import social.chat.config.common.Response;
+import social.chat.shared.common.GlobalParamName;
+import social.chat.shared.dto.Response;
 import social.chat.verification.api.dto.VerificationDto;
 
 import java.time.Duration;

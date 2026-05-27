@@ -4,6 +4,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authorization.internal.enums.PermissionName;
@@ -17,6 +18,7 @@ import social.chat.authorization.internal.repository.RoleRepository;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -68,5 +70,6 @@ public class RolePermissionInit {
         if(!roles.isEmpty()) {
             roleRepository.saveAll(roles);
         }
+        log.info("Role Permission initialized");
     }
 }

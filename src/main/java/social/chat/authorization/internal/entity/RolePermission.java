@@ -3,7 +3,7 @@ package social.chat.authorization.internal.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import social.chat.config.generateId.GenerateId;
+import social.chat.shared.generateId.GenerateId;
 
 @Table(name = "roles_permissions")
 @Entity

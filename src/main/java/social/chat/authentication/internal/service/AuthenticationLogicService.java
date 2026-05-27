@@ -15,11 +15,10 @@ import social.chat.authentication.internal.entity.Device;
 import social.chat.authentication.internal.entity.Session;
 import social.chat.authentication.internal.repository.DeviceRepository;
 import social.chat.authentication.internal.repository.SessionRepository;
-import social.chat.exception.EntityNotFoundException;
+import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.verification.api.VerificationImp;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -33,7 +32,10 @@ public class AuthenticationLogicService implements AuthenticationImp {
     VerificationImp verificationImp;
 
     @Override
-    public SessionValidation createSessionByDevice(Long userId, Long deviceId, String deviceName, String deviceType, String userAgent, String ipAddress, String location) {
+    @Transactional
+    public SessionValidation createSessionByDevice(Long userId, Long deviceId, String deviceName, String deviceType,
+                                                   String userAgent, String ipAddress, String location,
+                                                   boolean revoked, boolean validated) {
         log.info("Device id is {}", deviceId);
         Device device = Optional.ofNullable(deviceId)
                 .flatMap(deviceRepository::findById)
@@ -44,11 +46,11 @@ public class AuthenticationLogicService implements AuthenticationImp {
                         .build()));
         Session session = sessionRepository.findByDeviceAndUserId(device, userId).orElseGet(() ->
                 sessionRepository.save(Session.builder()
-                        .revoked(true)
+                        .revoked(revoked)
                         .userId(userId)
                         .ipAddress(ipAddress)
                         .device(device)
-                        .validated(false)
+                        .validated(validated)
                         .location(location)
                         .build()));
         return SessionValidation.builder()
@@ -99,13 +101,5 @@ public class AuthenticationLogicService implements AuthenticationImp {
         if(session.getValidated() != validated){
             session.setValidated(validated);
         }
-    }
-
-    @Override
-    @Transactional
-    public void hardDeleteSessionByUserIds(List<Long> userIds) {
-        List<Long> sessionIds = sessionRepository.findSessionIdsByUserIds(userIds);
-        sessionRepository.deleteAllById(sessionIds);
-        verificationImp.hardDeleteBySessionIds(sessionIds);
     }
 }

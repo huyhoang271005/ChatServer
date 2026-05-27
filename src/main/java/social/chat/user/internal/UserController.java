@@ -7,7 +7,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import social.chat.user.api.dto.LoginRequest;
+import social.chat.authentication.api.dto.LoginRequest;
 
 @RestController
 @RequiredArgsConstructor
@@ -24,6 +24,6 @@ public class UserController {
 
     @DeleteMapping("{userId}")
     public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
-        return ResponseEntity.ok(userService.deleteUser(userId));
+        return ResponseEntity.ok(userService.SoftDeleteUser(userId));
     }
 }

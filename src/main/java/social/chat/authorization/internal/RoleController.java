@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import social.chat.authorization.api.dto.RolePermissionDto;
-import social.chat.config.common.Response;
+import social.chat.shared.dto.Response;
 
 @RestController
 @RequiredArgsConstructor

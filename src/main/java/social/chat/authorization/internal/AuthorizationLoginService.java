@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import social.chat.authorization.api.AuthorizationImp;
 import social.chat.authorization.internal.enums.RoleDefault;
 import social.chat.authorization.internal.repository.RoleRepository;
-import social.chat.exception.EntityNotFoundException;
+import social.chat.shared.exception.EntityNotFoundException;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;

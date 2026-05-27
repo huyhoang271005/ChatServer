@@ -4,8 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
-import social.chat.config.generateId.GenerateId;
-import social.chat.verification.internal.Verification;
+import social.chat.shared.generateId.GenerateId;
 
 import java.time.Instant;
 import java.util.List;

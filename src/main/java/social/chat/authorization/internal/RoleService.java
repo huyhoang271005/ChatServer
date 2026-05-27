@@ -4,10 +4,12 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authorization.api.dto.PermissionDto;
 import social.chat.authorization.api.dto.RolePermissionDto;
+import social.chat.authorization.api.events.AuthorizationRoleIdRegisteredEvent;
 import social.chat.authorization.internal.entity.Permission;
 import social.chat.authorization.internal.entity.Role;
 import social.chat.authorization.internal.entity.RolePermission;
@@ -17,11 +19,10 @@ import social.chat.authorization.internal.mapper.RoleMapper;
 import social.chat.authorization.internal.repository.PermissionRepository;
 import social.chat.authorization.internal.repository.RolePermissionRepository;
 import social.chat.authorization.internal.repository.RoleRepository;
-import social.chat.config.common.GlobalMessage;
-import social.chat.config.common.Response;
-import social.chat.exception.ConflictException;
-import social.chat.exception.EntityNotFoundException;
-import social.chat.user.api.UserImp;
+import social.chat.shared.common.GlobalMessage;
+import social.chat.shared.dto.Response;
+import social.chat.shared.exception.ConflictException;
+import social.chat.shared.exception.EntityNotFoundException;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -38,7 +39,7 @@ public class RoleService {
     RoleCache roleCache;
     RoleMapper roleMapper;
     PermissionMapper permissionMapper;
-    UserImp userImp;
+    ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional
     public Response<RolePermissionDto> createRole(RolePermissionDto rolePermissionDto) {
@@ -115,9 +116,8 @@ public class RoleService {
         }
         role.setDeletedAt(Instant.now());
         roleCache.deleteRolePermissionCache(roleId);
-        roleRepository.findByRoleName(RoleDefault.USER.name())
-                        .ifPresent(roleUser -> userImp
-                                .updateUserRoleToRole(roleId, roleUser.getRoleId()));
+        AuthorizationRoleIdRegisteredEvent event = new AuthorizationRoleIdRegisteredEvent(roleId);
+        applicationEventPublisher.publishEvent(event);
         return Response.success(
                 GlobalMessage.Success.DELETED,
                 null

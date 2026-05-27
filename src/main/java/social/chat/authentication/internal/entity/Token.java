@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import social.chat.authentication.internal.enums.TokenType;
-import social.chat.config.generateId.GenerateId;
+import social.chat.shared.generateId.GenerateId;
 
 @Table(name = "tokens", indexes = {
         @Index(name = "idx_token_session", columnList = "session_id")

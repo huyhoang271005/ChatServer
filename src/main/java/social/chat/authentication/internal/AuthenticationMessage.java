@@ -12,4 +12,8 @@ public final class AuthenticationMessage {
         public static final String NOT_EXISTS = "session.not-exists";
         public static final String EXPIRED = "session.expired";
     }
+
+    public static final class Oauth2 {
+        public static final String NOT_FOUND_EMAIL = "oauth2.email.not-found";
+    }
 }

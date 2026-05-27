@@ -6,8 +6,8 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.exception.ConflictException;
-import social.chat.exception.EntityNotFoundException;
+import social.chat.shared.exception.ConflictException;
+import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.profile.api.ProfileImp;
 import social.chat.profile.api.dto.EmailResponse;
 import social.chat.profile.internal.ProfileMessage;
@@ -15,8 +15,7 @@ import social.chat.profile.internal.entity.Email;
 import social.chat.profile.internal.entity.Profile;
 import social.chat.profile.internal.repository.EmailRepository;
 import social.chat.profile.internal.repository.ProfileRepository;
-
-import java.util.List;
+import social.chat.user.api.UserImp;
 
 @Slf4j
 @Service
@@ -25,13 +24,7 @@ import java.util.List;
 public class ProfileLogicService implements ProfileImp {
     EmailRepository emailRepository;
     ProfileRepository profileRepository;
-
-    @Override
-    @Transactional
-    public void deleteProfileAndEmails(List<Long> userIds) {
-        profileRepository.deleteAllById(userIds);
-        emailRepository.deleteByUserIdIn(userIds);
-    }
+    UserImp userImp;
 
     @Override
     @Transactional(readOnly = true)
@@ -83,5 +76,18 @@ public class ProfileLogicService implements ProfileImp {
             throw new ConflictException(ProfileMessage.Email.VERIFIED);
         }
         email.setVerified(true);
+    }
+
+    @Override
+    @Transactional
+    public Long getUserIdByEmail(String emailName) {
+        Email email = emailRepository.findByEmailName(emailName)
+                .orElseGet(() -> emailRepository.save(Email.builder()
+                                .userId(userImp.getAndCreateUser())
+                                .emailName(emailName)
+                                .verified(true)
+                        .build()));
+        return email.getUserId();
+
     }
 }
