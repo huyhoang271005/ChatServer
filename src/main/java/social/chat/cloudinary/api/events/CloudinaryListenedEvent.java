@@ -22,13 +22,15 @@ public class CloudinaryListenedEvent {
 
     @ApplicationModuleListener
     public void deleteImages(CloudinaryRegisteredEvent event) {
-        try {
-            Map<?, ?> result = cloudinary.api().deleteResources(event.publicIds(), ObjectUtils.emptyMap());
-            Map<?, ?> deletedMap = (Map<?, ?>) result.get("deleted");
-            log.info(deletedMap.toString());
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+        if(event.publicIds() != null && !event.publicIds().isEmpty()){
+            try {
+                Map<?, ?> result = cloudinary.api().deleteResources(event.publicIds(), ObjectUtils.emptyMap());
+                Map<?, ?> deletedMap = (Map<?, ?>) result.get("deleted");
+                log.info(deletedMap.toString());
+            }
+            catch (Exception e) {
+                throw new RuntimeException(e.getMessage());
+            }
         }
     }
 }
