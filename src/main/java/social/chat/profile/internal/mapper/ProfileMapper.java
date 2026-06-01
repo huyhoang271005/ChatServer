@@ -4,6 +4,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import social.chat.profile.api.dto.ProfileDto;
+import social.chat.profile.api.dto.ProfileInfo;
+import social.chat.profile.api.dto.ProfileShortDto;
 import social.chat.profile.internal.entity.Profile;
 
 @Mapper(componentModel = "spring")
@@ -12,4 +14,5 @@ public interface ProfileMapper {
     @Mapping(target = "userId", ignore = true)
     @Mapping(target = "fullName", ignore = true)
     void updateProfile(ProfileDto profileDto, @MappingTarget Profile profile);
+    ProfileShortDto toProfileShortDto(ProfileInfo profileInfo);
 }

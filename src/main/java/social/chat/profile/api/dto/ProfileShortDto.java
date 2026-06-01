@@ -1,17 +1,19 @@
-package social.chat.authentication.api.dto;
+package social.chat.profile.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-@AllArgsConstructor
-@NoArgsConstructor
 @Getter
 @Setter
-@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class JwtResponse {
-    Long userId;
-    Long sessionId;
+public class ProfileShortDto {
+    String userId;
+    String username;
+    String fullName;
+    String avatarUrl;
+
 }

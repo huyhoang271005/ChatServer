@@ -1,5 +1,7 @@
 package social.chat.profile.api;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.modulith.NamedInterface;
 import social.chat.profile.api.dto.EmailResponse;
 
@@ -14,4 +16,5 @@ public interface ProfileImp {
     EmailResponse getUserByEmail(String emailName);
     void verifiedEmail(Long emailId);
     Long getUserIdByEmail(String emailName);
+    boolean getUpdated(Long userId);
 }

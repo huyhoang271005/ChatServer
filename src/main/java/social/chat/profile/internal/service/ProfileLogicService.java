@@ -4,6 +4,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.shared.exception.ConflictException;
@@ -89,5 +91,12 @@ public class ProfileLogicService implements ProfileImp {
                         .build()));
         return email.getUserId();
 
+    }
+
+    @Override
+    public boolean getUpdated(Long userId) {
+        Profile profile = profileRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException(ProfileMessage.Profile.NOT_EXITS));
+        return profile.getUpdated();
     }
 }
