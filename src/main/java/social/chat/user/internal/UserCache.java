@@ -5,10 +5,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.user.api.dto.UserCacheDto;
+
+import java.time.Instant;
 
 @Slf4j
 @Service
@@ -26,24 +29,41 @@ public class UserCache {
             return UserCacheDto.builder()
                     .roleId(user.getRoleId())
                     .accountStatus(user.getAccountStatus())
+                    .expireAt(user.getExpireAt())
                     .build();
         }
         return null;
     }
 
     @Transactional
-    @CacheEvict(value = "users", key = "#userId")
-    public void updateUserCache(Long userId, Long roleId, AccountStatus accountStatus) {
-        log.info("Deleted cache for user {}", userId);
-        userRepository.findById(userId)
-                .ifPresent(user -> {
-                    if(roleId != null) {
-                        user.setRoleId(roleId);
-                    }
-                    if(accountStatus != null) {
-                        user.setAccountStatus(accountStatus);
-                    }
-                });
-        log.info("Db update user for user {}", userId);
+    @CachePut(value = "users", key = "#userId")
+    public UserCacheDto updateUserCache(Long userId, Long roleId, AccountStatus accountStatus,
+                                        Instant expireAt, boolean saveDb) {
+        log.info("Updated cache for user {}", userId);
+        if(saveDb) {
+            userRepository.findById(userId)
+                    .ifPresent(user -> {
+                        if(roleId != null) {
+                            user.setRoleId(roleId);
+                        }
+                        if(accountStatus != null) {
+                            user.setAccountStatus(accountStatus);
+                            if(accountStatus == AccountStatus.BANNED && expireAt != null) {
+                                user.setExpireAt(expireAt);
+                            }
+                        }
+                    });
+            log.info("Db update user for user {}", userId);
+        }
+        return UserCacheDto.builder()
+                .roleId(roleId)
+                .accountStatus(accountStatus)
+                .expireAt(expireAt)
+                .build();
+    }
+
+    @CacheEvict(cacheNames = "users", key = "#userId")
+    public void deleteUserCache(Long userId) {
+        log.info("Deleted user for user {}", userId);
     }
 }

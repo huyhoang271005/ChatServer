@@ -3,23 +3,15 @@ package social.chat.user.internal;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.authentication.api.AuthenticationImp;
-import social.chat.authentication.api.events.AuthUserIdsRegisteredEvent;
 import social.chat.authorization.api.AuthorizationImp;
-import social.chat.profile.api.events.ProfileUserIdsRegisteredEvent;
 import social.chat.user.api.dto.UserCacheDto;
 import social.chat.shared.exception.ConflictException;
 import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.user.UserMessage;
 import social.chat.user.api.UserImp;
-
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -28,10 +20,8 @@ import java.util.UUID;
 public class UserLogicService implements UserImp {
     UserRepository userRepository;
     UserCache userCache;
-    AuthenticationImp authenticationImp;
     PasswordEncoder passwordEncoder;
     AuthorizationImp authorizationImp;
-    ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -67,14 +57,25 @@ public class UserLogicService implements UserImp {
 
     @Override
     @Transactional
+    public void updateAccountStatusToInactive(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException(UserMessage.User.NOT_EXITS));
+        user.setAccountStatus(AccountStatus.INACTIVE);
+    }
+
+    @Override
+    @Transactional
     public Long getRoleIdAndCheckAccountStatus(Long userId) {
         UserCacheDto userCacheDto = userCache.getUserCache(userId);
-        if(userCacheDto.getAccountStatus() != AccountStatus.ACTIVE) {
+        if(userCacheDto.getAccountStatus() != AccountStatus.ACTIVE &&
+                userCacheDto.getAccountStatus() != AccountStatus.PENDING_PROFILE) {
             switch (userCacheDto.getAccountStatus()) {
-                case AccountStatus.BLOCKED ->
-                        throw new ConflictException(UserMessage.Account.BLOCKED);
-                case AccountStatus.INACTIVE ->
+                case LOCKED ->
+                        throw new ConflictException(UserMessage.Account.LOCKED);
+                case INACTIVE ->
                         throw new ConflictException(UserMessage.Account.INACTIVE);
+                case BANNED ->
+                    throw new ConflictException(UserMessage.Account.BANNED, userCacheDto.getExpireAt());
                 default ->
                         throw new ConflictException(UserMessage.Account.INVALID);
             }
@@ -90,11 +91,15 @@ public class UserLogicService implements UserImp {
 
     @Override
     @Transactional
-    public void updateInactiveToPendingProfile(Long userId) {
+    public void updateInactiveToPendingProfileOrActive(Long userId, boolean profileUpdated) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException(UserMessage.User.NOT_EXITS));
         if(user.getAccountStatus() == AccountStatus.INACTIVE) {
-            user.setAccountStatus(AccountStatus.PENDING_PROFILE);
+            if (profileUpdated) {
+                user.setAccountStatus(AccountStatus.ACTIVE);
+            } else {
+                user.setAccountStatus(AccountStatus.PENDING_PROFILE);
+            }
         }
     }
 
@@ -115,30 +120,10 @@ public class UserLogicService implements UserImp {
     }
 
     @Override
-    public boolean checkUpdateProfile(Long userId) {
-        User user = userRepository.findById(userId).orElseThrow(() ->
-                new EntityNotFoundException(UserMessage.User.NOT_EXITS));
-        return user.getAccountStatus() != AccountStatus.PENDING_PROFILE;
-    }
-
-    @Override
     @Transactional(readOnly = true)
     public boolean isInactive(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException(UserMessage.User.NOT_EXITS));
         return user.getAccountStatus() == AccountStatus.INACTIVE;
-    }
-
-    @Override
-    @Transactional
-    public void hardDeleteUser() {
-        //Find users who deleted their accounts 7 days ago.
-        List<Long> userIds = userRepository.findUserIdsExpired(Instant.now()
-                .minus(7, ChronoUnit.DAYS));
-        userRepository.deleteAllById(userIds);
-        ProfileUserIdsRegisteredEvent profileUserIdsRegisteredEvent = new ProfileUserIdsRegisteredEvent(userIds);
-        applicationEventPublisher.publishEvent(profileUserIdsRegisteredEvent);
-        AuthUserIdsRegisteredEvent authUserIdsRegisteredEvent = new AuthUserIdsRegisteredEvent(userIds);
-        applicationEventPublisher.publishEvent(authUserIdsRegisteredEvent);
     }
 }

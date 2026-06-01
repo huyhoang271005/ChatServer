@@ -5,8 +5,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 public enum AccountStatus {
     ACTIVE,
     INACTIVE,
+    BANNED,
     PENDING_PROFILE,
-    BLOCKED;
+    LOCKED;
 
     @JsonCreator
     public static AccountStatus fromValue(String text) {

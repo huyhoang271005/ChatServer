@@ -8,8 +8,10 @@ public final class UserMessage {
     }
 
     public static final class Account {
-        public static final String BLOCKED = "account.blocked";
+        public static final String LOCKED = "account.locked";
         public static final String INACTIVE = "account.inactive";
         public static final String INVALID = "account.invalid";
+        public static final String BANNED = "account.banned";
+        public static final String TIME_BANNED_INVALID = "account.time-banned-invalid";
     }
 }

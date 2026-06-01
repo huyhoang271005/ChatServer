@@ -3,6 +3,7 @@ package social.chat.user.internal;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import social.chat.user.api.dto.UserInfo;
 
 import java.time.Instant;
 import java.util.List;
@@ -30,4 +31,19 @@ public interface UserRepository extends JpaRepository<User, Long> {
             where u.roleId = :oldRoleId
             """)
     void updateRoleId(Long newRoleId, Long oldRoleId);
+
+    @Query("""
+            select u.userId as userId, u.roleId as roleId
+            from User u
+            where u.accountStatus = AccountStatus.BANNED and u.expireAt < :timeNow
+            """)
+    List<UserInfo> findUserIdsNeedUnbanned(Instant timeNow);
+
+    @Modifying(clearAutomatically = true)
+    @Query("""
+            update User u
+            set u.accountStatus = AccountStatus.ACTIVE, u.expireAt = null
+            where u.userId in :userIds
+            """)
+    int unbannedByUserIds(List<Long> userIds);
 }
