@@ -41,6 +41,7 @@ public class VerificationListenedEvent {
 
     @ApplicationModuleListener
     public void deleteVerificationBySessionIds(VerificationSessionIdsRegisteredEvent verificationSessionIdsRegisteredEvent){
-        verificationRepository.deleteBySessionIdIn(verificationSessionIdsRegisteredEvent.sessionIds());
+        int verificationDeleted = verificationRepository.deleteBySessionIdIn(verificationSessionIdsRegisteredEvent.sessionIds());
+        log.info("{} verification deleted by session deleted", verificationDeleted);
     }
 }

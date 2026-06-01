@@ -17,7 +17,7 @@ public interface VerificationRepository extends JpaRepository<Verification, Long
             and v.typeId = :typeId
             and v.expiredAt >= :timeNow
             """)
-    void cancelVerificationPending(Long typeId, Instant timeNow);
+    int cancelVerificationPending(Long typeId, Instant timeNow);
 
     @Modifying
     @Query("""
@@ -26,11 +26,31 @@ public interface VerificationRepository extends JpaRepository<Verification, Long
             where v.verificationStatus != VerificationStatus.USED
             and v.expiredAt < :timeNow
             """)
-    void expireVerificationPending(Instant timeNow);
+    int expireVerificationPending(Instant timeNow);
 
     List<Verification> findBySessionIdAndVerificationTypeAndTypeIdAndExpiredAtAfterOrderByCreatedAtDesc(
             Long sessionId, VerificationType verificationType, Long typeId, Instant timeNow
     );
 
-    void deleteBySessionIdIn(List<Long> sessionIds);
+    int deleteBySessionIdIn(List<Long> sessionIds);
+
+    @Modifying(clearAutomatically = true)
+    @Query("""
+            delete from Verification v
+            where v.verificationId in (
+                select sub.id
+                from (
+                    select vSub.verificationId as id,
+                           row_number() over(
+                               partition by vSub.sessionId\s
+                               order by vSub.verificationId desc
+                           ) as rn
+                    from Verification vSub
+                ) sub
+                where sub.rn > :verificationToKeep
+                    )
+           """)
+    int deleteOldVerifications(int verificationToKeep);
+
+    List<Verification> findBySessionId(Long sessionId);
 }

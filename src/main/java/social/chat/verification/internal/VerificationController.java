@@ -1,5 +1,6 @@
 package social.chat.verification.internal;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +14,7 @@ import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.dto.EmailRequest;
 import social.chat.shared.common.GlobalParamName;
 import social.chat.shared.dto.Response;
-import social.chat.verification.api.dto.VerificationDto;
+import social.chat.verification.api.dto.VerificationRequest;
 
 import java.time.Duration;
 
@@ -27,13 +28,18 @@ public class VerificationController {
 
     @PostMapping("send-verification-email")
     public ResponseEntity<Response<?>> sendVerificationEmail(@Valid @RequestBody EmailRequest emailRequest,
-                                                             @CookieValue(name = GlobalParamName.DEVICE_ID_COOKIE_NAME,
+                                                             @CookieValue(name = GlobalParamName.Cookie.DEVICE_ID,
                                                                      required = false)
                                                              Long deviceId,
-                                                             @Header(name = HttpHeaders.USER_AGENT) String userAgent) {
+                                                             @Header(name = HttpHeaders.USER_AGENT) String userAgent,
+                                                             HttpServletRequest request) {
         var response = verificationService.sendVerificationEmail(emailRequest.getEmailName(),
-                deviceId, null, null, userAgent, null, null);
-        var cookie = authenticationImp.getResponseCookie(GlobalParamName.DEVICE_ID_COOKIE_NAME,
+                deviceId, String.valueOf(request.getAttribute(GlobalParamName.Attribute.DEVICE_NAME)),
+                String.valueOf(request.getAttribute(GlobalParamName.Attribute.DEVICE_TYPE)),
+                userAgent,
+                String.valueOf(request.getAttribute(GlobalParamName.Attribute.IP_ADDRESS)),
+                String.valueOf(request.getAttribute(GlobalParamName.Attribute.LOCATION)));
+        var cookie = authenticationImp.getResponseCookie(GlobalParamName.Cookie.DEVICE_ID,
                 String.valueOf(response.getData()),
                 Duration.ofDays(3650));
         response.setData(null);
@@ -45,13 +51,20 @@ public class VerificationController {
 
     @PostMapping("send-verification-reset-password")
     public ResponseEntity<Response<?>> sendVerificationResetPassword(@Valid @RequestBody EmailRequest emailRequest,
-                                                                     @CookieValue(name = GlobalParamName.DEVICE_ID_COOKIE_NAME,
+                                                                     @CookieValue(name = GlobalParamName.Cookie.DEVICE_ID,
                                                                              required = false)
                                                                      Long deviceId,
-                                                                     @Header(name = HttpHeaders.USER_AGENT) String userAgent) {
+                                                                     @Header(name = HttpHeaders.USER_AGENT)
+                                                                         String userAgent,
+                                                                     HttpServletRequest request) {
         var response = verificationService.sendVerificationChangePassword(emailRequest.getEmailName(),
-                deviceId, null, null, userAgent, null, null);
-        var cookie = authenticationImp.getResponseCookie(GlobalParamName.DEVICE_ID_COOKIE_NAME,
+                deviceId,
+                String.valueOf(request.getAttribute(GlobalParamName.Attribute.DEVICE_NAME)),
+                String.valueOf(request.getAttribute(GlobalParamName.Attribute.DEVICE_TYPE)),
+                userAgent,
+                String.valueOf(request.getAttribute(GlobalParamName.Attribute.IP_ADDRESS)),
+                String.valueOf(request.getAttribute(GlobalParamName.Attribute.LOCATION)));
+        var cookie = authenticationImp.getResponseCookie(GlobalParamName.Cookie.DEVICE_ID,
                 String.valueOf(response.getData()),
                 Duration.ofDays(3650));
         response.setData(null);
@@ -63,13 +76,19 @@ public class VerificationController {
 
     @PostMapping("send-verification-device")
     public ResponseEntity<Response<?>> sendVerificationDevice(@Valid @RequestBody EmailRequest emailRequest,
-                                                              @CookieValue(name = GlobalParamName.DEVICE_ID_COOKIE_NAME,
+                                                              @CookieValue(name = GlobalParamName.Cookie.DEVICE_ID,
                                                                       required = false)
                                                               Long deviceId,
-                                                              @Header(name = HttpHeaders.USER_AGENT) String userAgent) {
+                                                              @Header(name = HttpHeaders.USER_AGENT)
+                                                                  String userAgent,
+                                                              HttpServletRequest request) {
         var response = verificationService.sendVerificationDevice(emailRequest.getEmailName(),
-                deviceId, null, null, userAgent, null, null);
-        var cookie = authenticationImp.getResponseCookie(GlobalParamName.DEVICE_ID_COOKIE_NAME,
+                deviceId, String.valueOf(request.getAttribute(GlobalParamName.Attribute.DEVICE_NAME)),
+                String.valueOf(request.getAttribute(GlobalParamName.Attribute.DEVICE_TYPE)),
+                userAgent,
+                String.valueOf(request.getAttribute(GlobalParamName.Attribute.IP_ADDRESS)),
+                String.valueOf(request.getAttribute(GlobalParamName.Attribute.LOCATION)));
+        var cookie = authenticationImp.getResponseCookie(GlobalParamName.Cookie.DEVICE_ID,
                 String.valueOf(response.getData()),
                 Duration.ofDays(3650));
         response.setData(null);
@@ -80,7 +99,12 @@ public class VerificationController {
     }
 
     @PostMapping("verify")
-    public ResponseEntity<Response<?>> verifyUser(@Valid @RequestBody VerificationDto verificationDto) {
-        return ResponseEntity.ok(verificationService.verify(verificationDto));
+    public ResponseEntity<Response<?>> verifyUser(@Valid @RequestBody VerificationRequest verificationRequest) {
+        return ResponseEntity.ok(verificationService.verify(verificationRequest));
+    }
+
+    @GetMapping("session/{sessionId}")
+    public ResponseEntity<Response<?>> getVerificationBySessionId(@PathVariable Long sessionId) {
+        return ResponseEntity.ok(verificationService.getVerifications(sessionId));
     }
 }

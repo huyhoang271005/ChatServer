@@ -15,7 +15,7 @@ import social.chat.verification.internal.VerificationMessage;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class VerificationDto {
+public class VerificationRequest {
     @NotBlank
     String verificationId;
     Long deviceId;

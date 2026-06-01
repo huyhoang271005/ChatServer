@@ -10,7 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.dto.AuthRegexValidation;
 import social.chat.authentication.api.dto.SessionValidation;
-import social.chat.verification.api.dto.VerificationDto;
+import social.chat.verification.api.dto.VerificationRequest;
+import social.chat.verification.api.dto.VerificationResponse;
 import social.chat.verification.api.events.VerificationSendEmailRegisteredEvent;
 import social.chat.user.api.UserImp;
 import social.chat.verification.internal.enums.VerificationStatus;
@@ -42,6 +43,7 @@ public class VerificationService {
     UserImp userImp;
     AuthenticationImp authenticationImp;
     ApplicationProperties applicationProperties;
+    VerificationMapper verificationMapper;
 
     @Transactional
     public Long sendEmailVerification(VerificationType verificationType, String title,
@@ -64,7 +66,8 @@ public class VerificationService {
                 throw new ConflictException(GlobalMessage.RateLimit.MINUTE, timeNeedWait - timeWaited);
             }
         }
-        verificationRepository.cancelVerificationPending(typeId, Instant.now());
+        int verificationCanceled = verificationRepository.cancelVerificationPending(typeId, Instant.now());
+        log.info("{} verification canceled by user", verificationCanceled);
         Verification verification = Verification.builder()
                 .sessionId(sessionValidation.getSessionId())
                 .verificationType(verificationType)
@@ -150,9 +153,9 @@ public class VerificationService {
     }
 
     @Transactional
-    public Response<Void> verify(VerificationDto verificationDto) {
+    public Response<Void> verify(VerificationRequest verificationRequest) {
         Verification verification = verificationRepository
-                .findById(Long.parseLong(verificationDto.getVerificationId()))
+                .findById(Long.parseLong(verificationRequest.getVerificationId()))
                 .orElseThrow(() -> new EntityNotFoundException(VerificationMessage.Verification.NOT_EXISTS));
         if(verification.getVerificationStatus() == VerificationStatus.USED){
             throw new ConflictException(VerificationMessage.Verification.USED);
@@ -169,15 +172,15 @@ public class VerificationService {
                 if(userImp.isInactive(userId)){
                     authenticationImp.updateValidatedSession(verification.getSessionId(), true);
                 }
-                userImp.updateInactiveToPendingProfile(userId);
+                userImp.updateInactiveToPendingProfileOrActive(userId, profileImp.getUpdated(userId));
             }
             case VERIFICATION_DEVICE -> authenticationImp.updateValidatedSession(verification.getSessionId(),
                     true);
             case VERIFICATION_RESET_PASSWORD -> {
-                if(!verificationDto.getNewPassword().matches(AuthRegexValidation.PASSWORD)){
+                if(!verificationRequest.getNewPassword().matches(AuthRegexValidation.PASSWORD)){
                     throw new UnprocessableException(VerificationMessage.Validation.PASSWORD_INVALID);
                 }
-                userImp.updatePasswordHash(userId, verificationDto.getNewPassword());
+                userImp.updatePasswordHash(userId, verificationRequest.getNewPassword());
             }
             default -> {
                 log.error("Invalid verification type {}", verification.getVerificationType());
@@ -189,6 +192,15 @@ public class VerificationService {
         return Response.success(
                 VerificationMessage.Verification.SUCCESS,
                 null
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public Response<List<VerificationResponse>> getVerifications(Long sessionId){
+        List<Verification> verifications = verificationRepository.findBySessionId(sessionId);
+        return Response.success(
+                GlobalMessage.Success.GET,
+                verificationMapper.toVerificationResponseList(verifications)
         );
     }
 }
