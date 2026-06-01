@@ -20,11 +20,11 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
             """)
     List<Role> findAllRolesWithPermissions();
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("""
-            delete 
+            delete
             from Role r
             where r.deletedAt < :timeExpired
             """)
-    void deleteRolesWithTimeExpired(Instant timeExpired);
+    int deleteRolesWithTimeExpired(Instant timeExpired);
 }

@@ -79,6 +79,12 @@ public class RoleService {
     public Response<RolePermissionDto> updateRole(RolePermissionDto rolePermissionDto) {
         Role role = roleRepository.findById(Long.parseLong(rolePermissionDto.getRoleId()))
                 .orElseThrow(() -> new EntityNotFoundException(AuthorizationMessage.Role.NOT_EXISTS));
+        if(rolePermissionDto.getRoleName().equals(RoleDefault.ADMIN.name())) {
+            throw new ConflictException(AuthorizationMessage.Role.DEFAULT_CAN_UPDATE, role.getRoleName());
+        }
+        if(role.getDeletedAt() != null) {
+            throw new ConflictException(AuthorizationMessage.Role.DELETED);
+        }
         List<Permission> permissions = permissionRepository.findAllById(rolePermissionDto.getPermissions()
                 .stream()
                 .map(permissionDto -> Long.valueOf(permissionDto.getPermissionId()))
@@ -110,6 +116,9 @@ public class RoleService {
     public Response<Void> softDeleteRole(Long roleId) {
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new EntityNotFoundException(AuthorizationMessage.Role.NOT_EXISTS));
+        if(role.getDeletedAt() != null) {
+            throw new ConflictException(AuthorizationMessage.Role.DELETED);
+        }
         if(Arrays.stream(RoleDefault.values())
                 .anyMatch(roleDefault -> roleDefault.name().equals(role.getRoleName()))){
             throw new ConflictException(AuthorizationMessage.Role.DEFAULT_CANT_REMOVE, role.getRoleName());
@@ -155,6 +164,17 @@ public class RoleService {
         return Response.success(
                 GlobalMessage.Success.GET,
                 rolePermissionDtos
+        );
+    }
+
+    @Transactional
+    public Response<Void> restoreRole(Long roleId) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new EntityNotFoundException(AuthorizationMessage.Role.NOT_EXISTS));
+        role.setDeletedAt(null);
+        return Response.success(
+                GlobalMessage.Success.UPDATED,
+                null
         );
     }
 

@@ -6,5 +6,5 @@ import social.chat.authorization.internal.entity.Role;
 import social.chat.authorization.internal.entity.RolePermission;
 
 public interface RolePermissionRepository extends JpaRepository<RolePermission, Long> {
-    boolean existsByRoleAndPermission(Role role, Permission permission);
+    void deleteByRole(Role role);
 }

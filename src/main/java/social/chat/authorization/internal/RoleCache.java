@@ -12,6 +12,7 @@ import social.chat.authorization.api.dto.RolePermissionDto;
 import social.chat.authorization.internal.mapper.PermissionMapper;
 import social.chat.authorization.internal.mapper.RoleMapper;
 import social.chat.authorization.internal.repository.RoleRepository;
+import social.chat.shared.exception.EntityNotFoundException;
 
 @Slf4j
 @Service
@@ -34,7 +35,7 @@ public class RoleCache {
                             .toList());
                     return rolePermissionDto;
                 })
-                .orElse(null);
+                .orElseThrow(() -> new EntityNotFoundException(AuthorizationMessage.Role.NOT_EXISTS));
     }
 
     @CacheEvict(value = "roles", key = "#roleId")

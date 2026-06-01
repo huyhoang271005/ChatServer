@@ -2,7 +2,7 @@ spring:
   config:
     import: optional:file:.env[.properties]
   application:
-    name: chat
+    name: ${APP_NAME}
     frontend-url: ${FRONTEND_URL}
     backend-url: ${BACKEND_URL}
   cache:
@@ -13,7 +13,7 @@ spring:
     virtual:
       enabled: true
   messages:
-    basename: messages/profile/profile, messages/authentication/authentication, messages/global/global, messages/authorization/authorization, messages/verification/verification
+    basename: messages/profile/profile, messages/authentication/authentication, messages/global/global, messages/authorization/authorization, messages/verification/verification, messages/user/user
     encoding: UTF-8
     fallback-to-system-locale: false
   jpa:
@@ -29,8 +29,8 @@ spring:
         jwt:
           public-key-location: classpath:publicKey.pem
           private-key-location: classpath:privateKey.pem
-          access-token-expire: 300
-          refresh-token-expire: 604800
+          access-token-expire: ${JWT_ACCESS_TOKEN_EXPIRE}
+          refresh-token-expire: ${JWT_REFRESH_TOKEN_EXPIRE}
   mail:
     host: ${MAIL_HOST}
     port: 465
@@ -44,6 +44,13 @@ spring:
           ssl:
             enable: true
             trust: ${MAIL_HOST}
+app:
+  websocket:
+    endpoint: "/ws"
+    broker-paths:
+      - "/topic"
+    app-prefixes:
+      - "/app"
 yitter:
   worker-id: 1
   worker-id-bit-length: 6
@@ -55,3 +62,15 @@ cloudinary:
   cloud-name: ${CLOUD_NAME}
   api-key: ${CLOUD_API_KEY}
   api-secret: ${CLOUD_API_SECRET}
+cron-config:
+  user:
+    cleanup-user-cron: ${CLEANUP_USER_CRON}
+    days-to-keep-deleted-user: ${DAYS_TO_KEEP_DELETED_USER}
+    unbanned-user-cron: ${UNBANNED_USER_CRON}
+  authorization:
+    cleanup-role-cron: ${CLEANUP_ROLE_CRON}
+    days-to-keep-deleted-role: ${DAYS_TO_KEEP_DELETED_ROLE}
+  verification:
+    expired-verification-cron: ${EXPIRED_VERIFICATION_CRON}
+    cleanup-verification-cron: ${CLEANUP_VERIFICATION_CRON}
+    verification-to-keep: ${VERIFICATION_TO_KEEP}

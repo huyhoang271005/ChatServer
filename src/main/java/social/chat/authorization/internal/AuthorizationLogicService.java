@@ -6,26 +6,18 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authorization.api.AuthorizationImp;
+import social.chat.authorization.api.dto.RolePermissionDto;
+import social.chat.authorization.internal.entity.Role;
 import social.chat.authorization.internal.enums.RoleDefault;
 import social.chat.authorization.internal.repository.RoleRepository;
 import social.chat.shared.exception.EntityNotFoundException;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class AuthorizationLoginService implements AuthorizationImp {
+public class AuthorizationLogicService implements AuthorizationImp {
     RoleRepository roleRepository;
-
-    @Override
-    @Transactional
-    public void hardDeleteRole() {
-        //The role was deleted 7 days ago.
-        roleRepository.deleteRolesWithTimeExpired(Instant.now()
-                .minus(7, ChronoUnit.DAYS));
-    }
+    RoleCache roleCache;
 
     @Override
     @Transactional(readOnly = true)
@@ -33,5 +25,19 @@ public class AuthorizationLoginService implements AuthorizationImp {
         return roleRepository.findByRoleName(RoleDefault.USER.name())
                 .orElseThrow(() -> new EntityNotFoundException(AuthorizationMessage.Role.NOT_EXISTS))
                 .getRoleId();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RolePermissionDto getRolePermissionByRoleId(Long roleId) {
+        return roleCache.getRolePermissionsCache(roleId);
+    }
+
+    @Override
+    public void existsRoleByRoleIdAndNotDelete(Long roleId) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new EntityNotFoundException(AuthorizationMessage.Role.NOT_EXISTS));
+        if(role.getDeletedAt() != null)
+            throw new EntityNotFoundException(AuthorizationMessage.Role.DELETED);
     }
 }

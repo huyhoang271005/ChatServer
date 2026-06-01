@@ -8,6 +8,7 @@ import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.modulith.NamedInterface;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -77,6 +78,19 @@ public class GlobalExceptionHandle {
                         message,
                         List.of(message),
                         unauthorizedException.getArgs()
+                )
+        );
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Response<List<String>>> handleAccessDenied(AccessDeniedException accessDeniedException){
+        String message = accessDeniedException.getMessage();
+        log.error(responseTranslationAdvice.getString(message));
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                new Response<>(
+                        false,
+                        GlobalMessage.Error.FORBIDDEN,
+                        List.of(message)
                 )
         );
     }
