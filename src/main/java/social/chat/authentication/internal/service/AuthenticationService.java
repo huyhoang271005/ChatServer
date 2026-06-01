@@ -6,16 +6,18 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.dto.FirebaseLoginRequest;
-import social.chat.authentication.api.dto.JwtResponse;
 import social.chat.authentication.api.dto.SessionValidation;
 import social.chat.authentication.api.dto.TokenDto;
 import social.chat.shared.exception.ConflictException;
 import social.chat.authentication.api.dto.LoginRequest;
 import social.chat.authentication.internal.entity.*;
+import social.chat.shared.security.JwtService;
 import social.chat.user.api.UserImp;
 import social.chat.authentication.internal.enums.TokenType;
 import social.chat.authentication.internal.AuthenticationMessage;
@@ -34,21 +36,22 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class AuthService {
+public class AuthenticationService {
     SessionRepository sessionRepository;
     ProfileImp profileImp;
     DeviceRepository deviceRepository;
     TokenRepository tokenRepository;
     JwtService jwtService;
+    JwtDecoder jwtDecoder;
     UserImp userImp;
     AuthenticationImp authenticationImp;
 
-    private void createToken(Long deviceId, Long userId, String fcmToken, TokenDto tokenDto) {
+    private void createToken(Long deviceId, Long userId, String fcmToken, TokenDto tokenDto, Instant timeExpired) {
         Optional.ofNullable(deviceId)
                 .flatMap(deviceRepository::findById)
                 .flatMap(device -> sessionRepository.findByDeviceAndUserId(device, userId))
                 .ifPresent(session -> {
-                    String refreshToken = jwtService.generateJwt(userId, session.getSessionId(), true);
+                    String refreshToken = jwtService.generateJwt(userId, session.getSessionId(), true, timeExpired);
                     Token tokenJwt = tokenRepository.findBySessionAndTokenType(session, TokenType.REFRESH_TOKEN)
                             .orElseGet(() -> Token.builder()
                                     .tokenType(TokenType.REFRESH_TOKEN)
@@ -60,10 +63,13 @@ public class AuthService {
                                     .tokenType(TokenType.FCM_TOKEN)
                                     .session(session)
                                     .build());
-                    tokenFcm.setTokenValue(fcmToken);
+                    if(fcmToken != null){
+                        tokenFcm.setTokenValue(fcmToken);
+                    }
                     tokenRepository.saveAll(List.of(tokenJwt, tokenFcm));
                     session.setLastLogin(Instant.now());
-                    tokenDto.setAccessToken(jwtService.generateJwt(userId, session.getSessionId(), false));
+                    session.setRevoked(false);
+                    tokenDto.setAccessToken(jwtService.generateJwt(userId, session.getSessionId(), false, timeExpired));
                     tokenDto.setRefreshToken(refreshToken);
                     tokenDto.setVerifiedDevice(session.getValidated());
                 });
@@ -82,9 +88,9 @@ public class AuthService {
                 .hasProfile(hasProfile)
                 .verifiedEmail(emailResponse.getVerified())
                 .verifiedDevice(false)
-                .updateProfile(userImp.checkUpdateProfile(userId))
+                .updateProfile(profileImp.getUpdated(userId))
                 .build();
-        createToken(deviceId, userId, loginRequest.getFcmToken(), tokenDto);
+        createToken(deviceId, userId, loginRequest.getFcmToken(), tokenDto, null);
         return Response.success(
                 "Login success",
                 tokenDto
@@ -92,10 +98,10 @@ public class AuthService {
     }
 
     @Transactional
-    public Response<TokenDto> refreshToken(String refreshToken) {
-        JwtResponse jwtResponse;
+    public Response<TokenDto> refreshToken(String refreshToken, Long deviceId) {
+        Jwt jwt;
         try {
-            jwtResponse = jwtService.decoderJwt(refreshToken);
+            jwt = jwtDecoder.decode(refreshToken);
         } catch (Exception e) {
             tokenRepository.findByTokenValue(refreshToken).ifPresent(token -> {
                 Session session = token.getSession();
@@ -104,9 +110,10 @@ public class AuthService {
             log.error(e.getMessage());
             throw new UnauthorizedException(AuthenticationMessage.Session.EXPIRED);
         }
-        TokenDto tokenDto = TokenDto.builder()
-                .accessToken(jwtService.generateJwt(jwtResponse.getUserId(), jwtResponse.getSessionId(), false))
-                .build();
+        Long userId = Long.parseLong(jwt.getSubject());
+        userImp.getRoleIdAndCheckAccountStatus(userId);
+        TokenDto tokenDto = new TokenDto();
+        createToken(deviceId, userId, null, tokenDto, jwt.getExpiresAt());
         return Response.success(
                 GlobalMessage.Success.CREATED,
                 tokenDto
@@ -129,12 +136,12 @@ public class AuthService {
             TokenDto tokenDto = TokenDto.builder()
                     .userId(String.valueOf(userId))
                     .hasProfile(profileImp.existsProfileByUserId(userId))
-                    .updateProfile(userImp.checkUpdateProfile(userId))
+                    .updateProfile(profileImp.getUpdated(userId))
                     .verifiedEmail(true)
                     .verifiedDevice(true)
                     .deviceId(String.valueOf(sessionValidation.getDeviceId()))
                     .build();
-            createToken(deviceId, userId, firebaseLoginRequest.getFcmToken(), tokenDto);
+            createToken(deviceId, userId, firebaseLoginRequest.getFcmToken(), tokenDto, null);
             return Response.success(
                     "Login Success",
                     tokenDto

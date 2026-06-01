@@ -16,9 +16,11 @@ import social.chat.authentication.internal.entity.Session;
 import social.chat.authentication.internal.repository.DeviceRepository;
 import social.chat.authentication.internal.repository.SessionRepository;
 import social.chat.shared.exception.EntityNotFoundException;
+import social.chat.shared.security.JwtService;
 import social.chat.verification.api.VerificationImp;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 
 @Slf4j
@@ -61,15 +63,15 @@ public class AuthenticationLogicService implements AuthenticationImp {
     }
 
     @Override
-    public TokenDto generateToken(Long userId, Long deviceId) {
+    public TokenDto generateToken(Long userId, Long deviceId, Instant timeExpired) {
         Device device = deviceRepository.findById(deviceId)
                 .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Session.NOT_EXISTS));
         Long sessionId = sessionRepository.findByDeviceAndUserId(device, userId)
                 .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Session.NOT_EXISTS))
                 .getSessionId();
         return TokenDto.builder()
-                .accessToken(jwtService.generateJwt(userId, sessionId, false))
-                .refreshToken(jwtService.generateJwt(userId, sessionId, true))
+                .accessToken(jwtService.generateJwt(userId, sessionId, false, timeExpired))
+                .refreshToken(jwtService.generateJwt(userId, sessionId, true, timeExpired))
                 .hasProfile(true)
                 .build();
     }

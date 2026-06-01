@@ -1,5 +1,6 @@
 package social.chat.authentication.internal.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -8,12 +9,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.web.bind.annotation.*;
 import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.JwtProperties;
 import social.chat.authentication.api.dto.FirebaseLoginRequest;
 import social.chat.authentication.api.dto.LoginRequest;
-import social.chat.authentication.internal.service.AuthService;
+import social.chat.authentication.internal.service.AuthenticationService;
 import social.chat.shared.common.GlobalParamName;
 import social.chat.shared.dto.Response;
 
@@ -24,16 +26,16 @@ import java.time.Duration;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("auth")
 public class AuthController {
-    AuthService authService;
+    AuthenticationService authenticationService;
     AuthenticationImp authenticationImp;
     JwtProperties jwtProperties;
 
     @PostMapping("login")
     public ResponseEntity<Response<?>> login(@Valid @RequestBody LoginRequest loginRequest,
-                                             @CookieValue(name = GlobalParamName.DEVICE_ID_COOKIE_NAME,
+                                             @CookieValue(name = GlobalParamName.Cookie.DEVICE_ID,
                                              required = false) Long deviceId) {
-        var response = authService.login(loginRequest, deviceId);
-        ResponseCookie cookie = authenticationImp.getResponseCookie(GlobalParamName.REFRESH_TOKEN_COOKIE_NAME,
+        var response = authenticationService.login(loginRequest, deviceId);
+        ResponseCookie cookie = authenticationImp.getResponseCookie(GlobalParamName.Cookie.REFRESH_TOKEN,
                 response.getData().getRefreshToken(),
                 Duration.ofSeconds(jwtProperties.getRefreshTokenExpire()));
         response.getData().setRefreshToken(null);
@@ -45,13 +47,19 @@ public class AuthController {
 
     @PostMapping("login/oauth2")
     public ResponseEntity<Response<?>> loginGoogle(@Valid @RequestBody FirebaseLoginRequest firebaseLoginRequest,
-                                                   @CookieValue(name = GlobalParamName.DEVICE_ID_COOKIE_NAME)
-                                                   Long deviceId) {
-        var response = authService.oauth2Login(firebaseLoginRequest, deviceId, null, null,
-                null, null, null);
-        ResponseCookie cookieDevice = authenticationImp.getResponseCookie(GlobalParamName.DEVICE_ID_COOKIE_NAME,
+                                                   @CookieValue(name = GlobalParamName.Cookie.DEVICE_ID)
+                                                   Long deviceId,
+                                                   @Header(name = HttpHeaders.USER_AGENT) String userAgent,
+                                                   HttpServletRequest request) {
+        var response = authenticationService.oauth2Login(firebaseLoginRequest,
+                deviceId, String.valueOf(request.getAttribute(GlobalParamName.Attribute.DEVICE_NAME)),
+                String.valueOf(request.getAttribute(GlobalParamName.Attribute.DEVICE_TYPE)),
+                userAgent,
+                String.valueOf(request.getAttribute(GlobalParamName.Attribute.IP_ADDRESS)),
+                String.valueOf(request.getAttribute(GlobalParamName.Attribute.LOCATION)));
+        ResponseCookie cookieDevice = authenticationImp.getResponseCookie(GlobalParamName.Cookie.DEVICE_ID,
                 response.getData().getDeviceId(), Duration.ofDays(3650));
-        ResponseCookie cookieToken = authenticationImp.getResponseCookie(GlobalParamName.REFRESH_TOKEN_COOKIE_NAME,
+        ResponseCookie cookieToken = authenticationImp.getResponseCookie(GlobalParamName.Cookie.REFRESH_TOKEN,
                 response.getData().getRefreshToken(), Duration.ofSeconds(jwtProperties.getRefreshTokenExpire()));
         response.getData().setRefreshToken(null);
         response.getData().setDeviceId(null);
@@ -63,8 +71,12 @@ public class AuthController {
     }
 
     @GetMapping("refresh-token")
-    public ResponseEntity<Response<?>> refreshToken(@CookieValue(name = GlobalParamName.REFRESH_TOKEN_COOKIE_NAME)
-                                                    String refreshToken) {
-        return ResponseEntity.ok(authService.refreshToken(refreshToken));
+    public ResponseEntity<Response<?>> refreshToken(@CookieValue(name = GlobalParamName.Cookie.REFRESH_TOKEN)
+                                                    String refreshToken,
+                                                    @CookieValue(name = GlobalParamName.Cookie.DEVICE_ID)
+                                                    Long deviceId) {
+        var response =  authenticationService.refreshToken(refreshToken, deviceId);
+        response.getData().setRefreshToken(null);
+        return ResponseEntity.ok(response);
     }
 }
