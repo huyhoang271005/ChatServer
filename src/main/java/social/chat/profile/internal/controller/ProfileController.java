@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -32,10 +33,10 @@ public class ProfileController {
     @PostMapping("auth/{userId}")
     public ResponseEntity<?> createProfile(@PathVariable Long userId,
                                            @Valid @RequestBody FullNameRequest fullNameRequest,
-                                           @CookieValue(name = GlobalParamName.DEVICE_ID_COOKIE_NAME)
+                                           @CookieValue(name = GlobalParamName.Cookie.DEVICE_ID)
                                            Long deviceId) {
         var response = profileService.createProfile(userId, fullNameRequest.getFullName(), deviceId);
-        ResponseCookie cookie = authenticationImp.getResponseCookie(GlobalParamName.REFRESH_TOKEN_COOKIE_NAME,
+        ResponseCookie cookie = authenticationImp.getResponseCookie(GlobalParamName.Cookie.REFRESH_TOKEN,
                 response.getData().getRefreshToken(), Duration.ofSeconds(jwtProperties.getRefreshTokenExpire()));
         response.getData().setRefreshToken(null);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -47,5 +48,22 @@ public class ProfileController {
     public ResponseEntity<?> updateProfile(@Valid @RequestBody ProfileDto profileDto,
                                            @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(profileService.updateProfile(Long.parseLong(jwt.getSubject()), profileDto));
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getMyProfile(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(profileService.getProfile(Long.parseLong(jwt.getSubject())));
+    }
+
+    @GetMapping("{userId}")
+    public ResponseEntity<?> getProfile(@PathVariable Long userId) {
+        return ResponseEntity.ok(profileService.getProfile(userId));
+    }
+
+    @GetMapping("list")
+    public ResponseEntity<?> getProfiles(@RequestParam(name = "lastId", required = false) Long lastId,
+                                         @RequestParam(name = "emailName", required = false) String emailName,
+                                         Pageable pageable) {
+        return ResponseEntity.ok(profileService.getProfiles(lastId, emailName, pageable));
     }
 }

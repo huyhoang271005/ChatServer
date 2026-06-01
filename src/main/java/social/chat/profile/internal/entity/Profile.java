@@ -39,6 +39,8 @@ public class Profile {
 
     LocalDate birthday;
 
+    Boolean updated;
+
     @Column(name = "updated_at")
     @UpdateTimestamp
     Instant updatedAt;

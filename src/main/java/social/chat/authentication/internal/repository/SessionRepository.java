@@ -1,8 +1,9 @@
 package social.chat.authentication.internal.repository;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import social.chat.authentication.internal.entity.Device;
 import social.chat.authentication.internal.entity.Session;
 
@@ -18,4 +19,15 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
             where s.userId in :userIds
             """)
     List<Long> findSessionIdsByUserIds(List<Long> userIds);
+
+    @Query("""
+            select s
+            from Session s
+            join fetch s.device
+            where s.userId = :userId
+            and (:lastId is null or s.sessionId > :lastId)
+            """)
+    Slice<Session> findByUserIdAndLastId(Long userId, Long lastId, Pageable pageable);
+
+    int deleteByUserIdAndSessionId(Long userId, Long sessionId);
 }

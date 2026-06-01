@@ -11,6 +11,6 @@ import java.util.List;
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ResponseList<T> {
-    Boolean hasMore;
     List<T> data;
+    Boolean hasMore;
 }
