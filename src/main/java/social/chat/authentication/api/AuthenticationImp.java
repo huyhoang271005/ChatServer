@@ -18,4 +18,6 @@ public interface AuthenticationImp {
     Long getUserIdBySessionId(Long sessionId);
     ResponseCookie getResponseCookie(String paramName, String paramValue, Duration duration);
     void updateValidatedSession(Long sessionId, boolean validated);
+    void deleteSessionByUserIds(List<Long> userIds);
+    void checkSession(Long sessionId);
 }

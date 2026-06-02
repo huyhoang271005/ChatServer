@@ -8,4 +8,6 @@ public interface AuthorizationImp {
     Long getRoleIdByRoleUser();
     RolePermissionDto getRolePermissionByRoleId(Long roleId);
     void existsRoleByRoleIdAndNotDelete(Long roleId);
+    void updateRoleToUser(Long oldRoleId);
+    void hardDeleteRoleCronjob();
 }

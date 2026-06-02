@@ -14,4 +14,6 @@ public interface UserImp {
     void updatePasswordHash(Long userId, String newPassword);
     boolean checkPassword(Long userId, String password);
     boolean isInactive(Long userId);
+    void unbannedAccountCronjob();
+    void hardDeleteUserCronjob();
 }

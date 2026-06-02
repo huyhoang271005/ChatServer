@@ -44,7 +44,7 @@ public class SessionService {
 
     @Transactional
     public Response<Void> deleteSession(Long userId, Long sessionId) {
-        sessionCache.evictCacheSession(sessionId, userId);
+        sessionCache.evictCacheSession(sessionId, userId, true);
         return Response.success(
                 GlobalMessage.Success.DELETED,
                 null

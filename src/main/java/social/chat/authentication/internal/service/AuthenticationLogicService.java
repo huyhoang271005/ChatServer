@@ -4,23 +4,28 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.AuthenticationImp;
+import social.chat.authentication.api.dto.SessionCacheDto;
 import social.chat.authentication.api.dto.SessionValidation;
 import social.chat.authentication.api.dto.TokenDto;
 import social.chat.authentication.internal.AuthenticationMessage;
+import social.chat.authentication.internal.cache.SessionCache;
 import social.chat.authentication.internal.entity.Device;
 import social.chat.authentication.internal.entity.Session;
 import social.chat.authentication.internal.repository.DeviceRepository;
 import social.chat.authentication.internal.repository.SessionRepository;
 import social.chat.shared.exception.EntityNotFoundException;
+import social.chat.shared.exception.UnauthorizedException;
 import social.chat.shared.security.JwtService;
-import social.chat.verification.api.VerificationImp;
+import social.chat.verification.api.events.VerificationDeleteBySessionIdsRegisteredEvent;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -31,7 +36,8 @@ public class AuthenticationLogicService implements AuthenticationImp {
     JwtService jwtService;
     SessionRepository sessionRepository;
     DeviceRepository deviceRepository;
-    VerificationImp verificationImp;
+    SessionCache sessionCache;
+    ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @Transactional
@@ -102,6 +108,27 @@ public class AuthenticationLogicService implements AuthenticationImp {
                 .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Session.NOT_EXISTS));
         if(session.getValidated() != validated){
             session.setValidated(validated);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteSessionByUserIds(List<Long> userIds) {
+        List<Long> sessionIds = sessionRepository.findSessionIdsByUserIds(userIds);
+        sessionRepository.deleteAllById(sessionIds);
+        sessionIds.forEach(sessionId -> sessionCache
+                .evictCacheSession(sessionId, null, false));
+        VerificationDeleteBySessionIdsRegisteredEvent verificationDeleteBySessionIdsRegisteredEvent =
+                new VerificationDeleteBySessionIdsRegisteredEvent(sessionIds);
+        applicationEventPublisher.publishEvent(verificationDeleteBySessionIdsRegisteredEvent);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void checkSession(Long sessionId) {
+        SessionCacheDto sessionCacheDto = sessionCache.getCacheSession(sessionId);
+        if(sessionCacheDto.isRevoked()){
+            throw new UnauthorizedException(AuthenticationMessage.Session.EXPIRED);
         }
     }
 }

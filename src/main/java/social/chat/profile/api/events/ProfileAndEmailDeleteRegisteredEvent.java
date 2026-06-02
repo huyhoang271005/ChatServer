@@ -5,6 +5,6 @@ import org.springframework.modulith.NamedInterface;
 import java.util.List;
 
 @NamedInterface
-public record ProfileUserIdsRegisteredEvent(
+public record ProfileAndEmailDeleteRegisteredEvent(
         List<Long> userIds
 ) {}

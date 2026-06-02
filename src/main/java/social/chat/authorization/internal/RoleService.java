@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authorization.api.dto.PermissionDto;
 import social.chat.authorization.api.dto.RolePermissionDto;
-import social.chat.authorization.api.events.AuthorizationRoleIdRegisteredEvent;
+import social.chat.authorization.api.events.AuthorizationUpdateRoleToUserRegisteredEvent;
 import social.chat.authorization.internal.entity.Permission;
 import social.chat.authorization.internal.entity.Role;
 import social.chat.authorization.internal.entity.RolePermission;
@@ -125,7 +125,7 @@ public class RoleService {
         }
         role.setDeletedAt(Instant.now());
         roleCache.deleteRolePermissionCache(roleId);
-        AuthorizationRoleIdRegisteredEvent event = new AuthorizationRoleIdRegisteredEvent(roleId);
+        AuthorizationUpdateRoleToUserRegisteredEvent event = new AuthorizationUpdateRoleToUserRegisteredEvent(roleId);
         applicationEventPublisher.publishEvent(event);
         return Response.success(
                 GlobalMessage.Success.DELETED,

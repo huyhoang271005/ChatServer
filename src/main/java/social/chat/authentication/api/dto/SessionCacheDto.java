@@ -8,10 +8,10 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @Getter
 @Setter
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SessionCacheDto {
-    Long sessionId;
     boolean revoked;
     String ipAddress;
 

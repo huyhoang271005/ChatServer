@@ -17,4 +17,5 @@ public interface ProfileImp {
     void verifiedEmail(Long emailId);
     Long getUserIdByEmail(String emailName);
     boolean getUpdated(Long userId);
+    void deleteEmailAndProfileByUserIds(List<Long> userIds);
 }

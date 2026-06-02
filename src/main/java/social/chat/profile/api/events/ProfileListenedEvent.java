@@ -6,20 +6,17 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.profile.internal.repository.EmailRepository;
-import social.chat.profile.internal.repository.ProfileRepository;
+import social.chat.profile.api.ProfileImp;
 
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProfileListenedEvent {
-    ProfileRepository profileRepository;
-    EmailRepository emailRepository;
+    ProfileImp profileImp;
 
     @EventListener
     @Transactional
-    public void handleProfileRegisteredEvent(ProfileUserIdsRegisteredEvent event) {
-        profileRepository.deleteAllById(event.userIds());
-        emailRepository.deleteByUserIdIn(event.userIds());
+    public void deleteProfileAndEmail(ProfileAndEmailDeleteRegisteredEvent event) {
+        profileImp.deleteEmailAndProfileByUserIds(event.userIds());
     }
 }

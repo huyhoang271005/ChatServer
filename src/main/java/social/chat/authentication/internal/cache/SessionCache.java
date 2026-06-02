@@ -23,7 +23,7 @@ public class SessionCache {
     SessionRepository sessionRepository;
     SessionMapper sessionMapper;
 
-    @Cacheable(cacheNames = "session", key = "#sessionId")
+    @Cacheable(cacheNames = "sessions", key = "#sessionId")
     @Transactional(readOnly = true)
     public SessionCacheDto getCacheSession(Long sessionId) {
         log.info("Cached session for session {}", sessionId);
@@ -34,17 +34,22 @@ public class SessionCache {
                 ));
     }
 
-    @CachePut(cacheNames = "session", key = "#sessionId")
-    public SessionCacheDto putCacheSession(Long sessionId, SessionCacheDto sessionCacheDto) {
+    @CachePut(cacheNames = "sessions", key = "#sessionId")
+    public SessionCacheDto putCacheSession(Long sessionId, boolean revoked, String ipAddress) {
         log.info("Updated cache for session {}", sessionId);
-        return  sessionCacheDto;
+        return  SessionCacheDto.builder()
+                .revoked(revoked)
+                .ipAddress(ipAddress)
+                .build();
     }
 
-    @CacheEvict(cacheNames = "session", key = "#sessionId")
+    @CacheEvict(cacheNames = "sessions", key = "#sessionId")
     @Transactional
-    public void evictCacheSession(Long sessionId, Long userId) {
+    public void evictCacheSession(Long sessionId, Long userId, boolean saveDb) {
         log.info("Removed cache for session {}", sessionId);
-        int sessionDeleted = sessionRepository.deleteByUserIdAndSessionId(userId, sessionId);
-        log.info("{} session deleted", sessionDeleted);
+        if(saveDb && userId != null) {
+            int sessionDeleted = sessionRepository.deleteByUserIdAndSessionId(userId, sessionId);
+            log.info("{} session deleted", sessionDeleted);
+        }
     }
 }

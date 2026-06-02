@@ -3,17 +3,28 @@ package social.chat.user.internal;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import social.chat.authentication.api.events.AuthUserIdsRegisteredEvent;
 import social.chat.authorization.api.AuthorizationImp;
+import social.chat.profile.api.events.ProfileAndEmailDeleteRegisteredEvent;
 import social.chat.user.api.dto.UserCacheDto;
 import social.chat.shared.exception.ConflictException;
 import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.user.UserMessage;
 import social.chat.user.api.UserImp;
+import social.chat.user.api.dto.UserInfo;
+import social.chat.user.internal.cronjob.UserCronjobProperties;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -22,6 +33,8 @@ public class UserLogicService implements UserImp {
     UserCache userCache;
     PasswordEncoder passwordEncoder;
     AuthorizationImp authorizationImp;
+    UserCronjobProperties userCronjobProperties;
+    ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -86,7 +99,10 @@ public class UserLogicService implements UserImp {
     @Override
     @Transactional
     public void updateUserRoleToRole(Long oldRoleId, Long newRoleId) {
-        userRepository.updateRoleId(oldRoleId, newRoleId);
+        List<Long> userIds = userRepository.getUserIdsByRoleId(oldRoleId);
+        int userUpdated = userRepository.updateRoleIdByUserIdIn(userIds, newRoleId);
+        log.info("{} user updated role",  userUpdated);
+        userIds.forEach(userCache::deleteUserCache);
     }
 
     @Override
@@ -125,5 +141,31 @@ public class UserLogicService implements UserImp {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException(UserMessage.User.NOT_EXITS));
         return user.getAccountStatus() == AccountStatus.INACTIVE;
+    }
+
+    @Override
+    @Transactional
+    public void unbannedAccountCronjob() {
+        List<UserInfo> userInfos = userRepository.findUserIdsNeedUnbanned(Instant.now());
+        List<Long> userIds = userInfos.stream()
+                .map(UserInfo::getUserId)
+                .toList();
+        int accountUnbanned = userRepository.unbannedByUserIds(userIds);
+        log.info("{} account unbanned", accountUnbanned);
+        userInfos.forEach(userInfo -> userCache.updateUserCache(userInfo.getUserId(), userInfo.getRoleId(),
+                AccountStatus.ACTIVE, null, false));
+    }
+
+    @Override
+    @Transactional
+    public void hardDeleteUserCronjob() {
+        List<Long> userIds = userRepository.findUserIdsExpired(Instant.now()
+                .minus(userCronjobProperties.getDaysToKeepDeletedUser(), ChronoUnit.DAYS));
+        userRepository.deleteAllById(userIds);
+        ProfileAndEmailDeleteRegisteredEvent profileAndEmailDeleteRegisteredEvent = new ProfileAndEmailDeleteRegisteredEvent(userIds);
+        applicationEventPublisher.publishEvent(profileAndEmailDeleteRegisteredEvent);
+        AuthUserIdsRegisteredEvent authUserIdsRegisteredEvent = new AuthUserIdsRegisteredEvent(userIds);
+        applicationEventPublisher.publishEvent(authUserIdsRegisteredEvent);
+        log.info("{} user deleted by scheduled", userIds.size());
     }
 }

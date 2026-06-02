@@ -24,13 +24,20 @@ public interface UserRepository extends JpaRepository<User, Long> {
             """)
     List<Long> findUserIdsExpired(Instant timeExpired);
 
+    @Query("""
+            select u.userId
+            from User u
+            where u.roleId = :roleId
+            """)
+    List<Long> getUserIdsByRoleId(Long roleId);
+
     @Modifying
     @Query("""
             update User u
-            set u.roleId = :newRoleId
-            where u.roleId = :oldRoleId
+            set u.roleId = :roleId
+            where u.userId in :userIds
             """)
-    void updateRoleId(Long newRoleId, Long oldRoleId);
+    int updateRoleIdByUserIdIn(List<Long> userIds, Long roleId);
 
     @Query("""
             select u.userId as userId, u.roleId as roleId

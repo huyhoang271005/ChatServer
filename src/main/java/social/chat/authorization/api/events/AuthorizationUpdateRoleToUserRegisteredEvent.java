@@ -1,6 +1,6 @@
 package social.chat.authorization.api.events;
 
-public record AuthorizationRoleIdRegisteredEvent(
+public record AuthorizationUpdateRoleToUserRegisteredEvent(
         Long roleId
 ) {
 }
