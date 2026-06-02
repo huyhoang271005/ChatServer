@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authorization.api.AuthorizationImp;
@@ -13,7 +14,7 @@ import social.chat.authorization.internal.entity.Role;
 import social.chat.authorization.internal.enums.RoleDefault;
 import social.chat.authorization.internal.repository.RoleRepository;
 import social.chat.shared.exception.EntityNotFoundException;
-import social.chat.user.api.UserImp;
+import social.chat.user.api.events.UserUpdateRoleToRoleRegisteredEvent;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -25,7 +26,7 @@ import java.time.temporal.ChronoUnit;
 public class AuthorizationLogicService implements AuthorizationImp {
     RoleRepository roleRepository;
     RoleCache roleCache;
-    UserImp userImp;
+    ApplicationEventPublisher applicationEventPublisher;
     AuthorizationCronjobProperties authorizationCronjobProperties;
 
     @Override
@@ -55,8 +56,9 @@ public class AuthorizationLogicService implements AuthorizationImp {
     @Transactional
     public void updateRoleToUser(Long oldRoleId) {
         roleRepository.findByRoleName(RoleDefault.USER.name())
-                .ifPresent(roleUser -> userImp
-                        .updateUserRoleToRole(oldRoleId, roleUser.getRoleId()));
+                .ifPresent(roleUser -> applicationEventPublisher
+                        .publishEvent(new UserUpdateRoleToRoleRegisteredEvent(oldRoleId,
+                                roleUser.getRoleId())));
     }
 
     @Override

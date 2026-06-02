@@ -24,4 +24,9 @@ public class UserListenerEvent {
     public void hardDeleteUser(UserHardDeleteUserRegisteredEvent event){
         userImp.hardDeleteUserCronjob();
     }
+
+    @ApplicationModuleListener
+    public void updateRoleToRole(UserUpdateRoleToRoleRegisteredEvent event){
+        userImp.updateUserRoleToRole(event.oldRoleId(), event.newRoleId());
+    }
 }
