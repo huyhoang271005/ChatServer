@@ -4,6 +4,7 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 .env
+**/main/resources/social-chat-c0602-firebase-adminsdk-fbsvc-c82c0f288c.json
 
 ### STS ###
 .apt_generated
