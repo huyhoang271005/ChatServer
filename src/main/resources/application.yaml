@@ -77,3 +77,8 @@ cron-config:
     expired-verification-cron: ${EXPIRED_VERIFICATION_CRON}
     cleanup-verification-cron: ${CLEANUP_VERIFICATION_CRON}
     verification-to-keep: ${VERIFICATION_TO_KEEP}
+  authentication:
+    cleanup-device-cron: ${CLEANUP_DEVICE_CRON}
+    revoked-session-expired-cron: ${REVOKED_SESSION_EXPIRED_CRON}
+    cleanup-session-cron: ${CLEANUP_SESSION_CRON}
+    days-to-keep-session-revoked: ${DAYS_TO_KEEP_SESSION_REVOKED}

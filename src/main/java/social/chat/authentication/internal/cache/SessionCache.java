@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.dto.SessionCacheDto;
 import social.chat.authentication.internal.AuthenticationMessage;
+import social.chat.authentication.internal.entity.Session;
 import social.chat.authentication.internal.mapper.SessionMapper;
 import social.chat.authentication.internal.repository.SessionRepository;
 import social.chat.shared.exception.EntityNotFoundException;
@@ -35,11 +36,19 @@ public class SessionCache {
     }
 
     @CachePut(cacheNames = "sessions", key = "#sessionId")
-    public SessionCacheDto putCacheSession(Long sessionId, boolean revoked, String ipAddress) {
+    public SessionCacheDto putCacheSession(Long sessionId, boolean revoked, String oldIpAddress,
+                                           String newIpAddress, String location, boolean saveDb) {
         log.info("Updated cache for session {}", sessionId);
+        if(saveDb && !oldIpAddress.equals(newIpAddress)) {
+            Session session = sessionRepository.findById(sessionId)
+                    .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Session.NOT_EXISTS));
+            session.setIpAddress(newIpAddress);
+            session.setRevoked(revoked);
+            session.setLocation(location);
+        }
         return  SessionCacheDto.builder()
                 .revoked(revoked)
-                .ipAddress(ipAddress)
+                .ipAddress(newIpAddress)
                 .build();
     }
 

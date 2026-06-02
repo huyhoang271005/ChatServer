@@ -9,11 +9,13 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.AuthenticationImp;
+import social.chat.authentication.api.JwtProperties;
 import social.chat.authentication.api.dto.SessionCacheDto;
 import social.chat.authentication.api.dto.SessionValidation;
 import social.chat.authentication.api.dto.TokenDto;
 import social.chat.authentication.internal.AuthenticationMessage;
 import social.chat.authentication.internal.cache.SessionCache;
+import social.chat.authentication.internal.cronjob.AuthenticationCronjobProperties;
 import social.chat.authentication.internal.entity.Device;
 import social.chat.authentication.internal.entity.Session;
 import social.chat.authentication.internal.repository.DeviceRepository;
@@ -38,6 +40,8 @@ public class AuthenticationLogicService implements AuthenticationImp {
     DeviceRepository deviceRepository;
     SessionCache sessionCache;
     ApplicationEventPublisher applicationEventPublisher;
+    JwtProperties jwtProperties;
+    AuthenticationCronjobProperties aAuthenticationCronjobProperties;
 
     @Override
     @Transactional
@@ -124,11 +128,42 @@ public class AuthenticationLogicService implements AuthenticationImp {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public void checkSession(Long sessionId) {
+    @Transactional
+    public void checkSession(Long sessionId, String ipAddress, String location, boolean saveDb) {
         SessionCacheDto sessionCacheDto = sessionCache.getCacheSession(sessionId);
         if(sessionCacheDto.isRevoked()){
             throw new UnauthorizedException(AuthenticationMessage.Session.EXPIRED);
         }
+        sessionCache.putCacheSession(sessionId, false, sessionCacheDto.getIpAddress(),
+                ipAddress, location, saveDb);
+    }
+
+    @Override
+    @Transactional
+    public void revokedSessionExpiredCron() {
+        List<Long> sessionIds = sessionRepository.findSessionIdsByTimeMinus(Instant.now()
+                .minusSeconds(jwtProperties.getRefreshTokenExpire()));
+        int sessionRevoked = sessionRepository.revokeSessionBySessionIds(sessionIds);
+        log.info("{} sessions revoked by scheduled", sessionRevoked);
+        sessionIds.forEach(sessionId -> sessionCache.evictCacheSession(sessionId, null, false));
+    }
+
+    @Override
+    @Transactional
+    public void cleanupDeviceCron() {
+        int deviceDeleted = deviceRepository.deleteBySessionsIsEmpty();
+        log.info("{} devices deleted by scheduled", deviceDeleted);
+    }
+
+    @Override
+    @Transactional
+    public void cleanupSessionCron() {
+        List<Long> sessionIds = sessionRepository.findSessionIdByLastLoginBefore(Instant.now()
+                .minusSeconds(aAuthenticationCronjobProperties
+                        .getDaysToKeepSessionExpired()));
+        int sessionDeleted = sessionRepository.deleteBySessionIdIn(sessionIds);
+        applicationEventPublisher
+                .publishEvent(new VerificationDeleteBySessionIdsRegisteredEvent(sessionIds));
+        log.info("{} sessions deleted by scheduled", sessionDeleted);
     }
 }

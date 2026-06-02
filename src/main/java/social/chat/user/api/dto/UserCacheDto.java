@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import social.chat.user.internal.AccountStatus;
 
+import java.io.Serializable;
 import java.time.Instant;
 
 @AllArgsConstructor
@@ -14,7 +15,7 @@ import java.time.Instant;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class UserCacheDto {
+public class UserCacheDto implements Serializable {
     Long roleId;
     AccountStatus accountStatus;
     Instant expireAt;

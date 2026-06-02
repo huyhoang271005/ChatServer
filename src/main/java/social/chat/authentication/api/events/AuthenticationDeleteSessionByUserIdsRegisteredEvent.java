@@ -5,7 +5,7 @@ import org.springframework.modulith.NamedInterface;
 import java.util.List;
 
 @NamedInterface
-public record AuthUserIdsRegisteredEvent(
+public record AuthenticationDeleteSessionByUserIdsRegisteredEvent(
         List<Long> userIds
 ) {
 }

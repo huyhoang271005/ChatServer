@@ -24,6 +24,7 @@ public interface VerificationRepository extends JpaRepository<Verification, Long
             update Verification v
             set v.verificationStatus = VerificationStatus.EXPIRED
             where v.verificationStatus != VerificationStatus.USED
+            and v.verificationStatus != VerificationStatus.EXPIRED
             and v.expiredAt < :timeNow
             """)
     int expireVerificationPending(Instant timeNow);

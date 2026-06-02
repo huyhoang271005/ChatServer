@@ -8,7 +8,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.authentication.api.events.AuthUserIdsRegisteredEvent;
+import social.chat.authentication.api.events.AuthenticationDeleteSessionByUserIdsRegisteredEvent;
 import social.chat.authorization.api.AuthorizationImp;
 import social.chat.profile.api.events.ProfileAndEmailDeleteRegisteredEvent;
 import social.chat.user.api.dto.UserCacheDto;
@@ -164,8 +164,8 @@ public class UserLogicService implements UserImp {
         userRepository.deleteAllById(userIds);
         ProfileAndEmailDeleteRegisteredEvent profileAndEmailDeleteRegisteredEvent = new ProfileAndEmailDeleteRegisteredEvent(userIds);
         applicationEventPublisher.publishEvent(profileAndEmailDeleteRegisteredEvent);
-        AuthUserIdsRegisteredEvent authUserIdsRegisteredEvent = new AuthUserIdsRegisteredEvent(userIds);
-        applicationEventPublisher.publishEvent(authUserIdsRegisteredEvent);
+        AuthenticationDeleteSessionByUserIdsRegisteredEvent authenticationDeleteSessionByUserIdsRegisteredEvent = new AuthenticationDeleteSessionByUserIdsRegisteredEvent(userIds);
+        applicationEventPublisher.publishEvent(authenticationDeleteSessionByUserIdsRegisteredEvent);
         log.info("{} user deleted by scheduled", userIds.size());
     }
 }

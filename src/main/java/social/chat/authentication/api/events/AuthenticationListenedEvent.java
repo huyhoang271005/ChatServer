@@ -14,7 +14,22 @@ public class AuthenticationListenedEvent {
     AuthenticationImp authenticationImp;
 
     @ApplicationModuleListener
-    public void deleteSessionByUserIds(AuthUserIdsRegisteredEvent authUserIdsRegisteredEvent){
-        authenticationImp.deleteSessionByUserIds(authUserIdsRegisteredEvent.userIds());
+    public void deleteSessionByUserIds(AuthenticationDeleteSessionByUserIdsRegisteredEvent authenticationDeleteSessionByUserIdsRegisteredEvent){
+        authenticationImp.deleteSessionByUserIds(authenticationDeleteSessionByUserIdsRegisteredEvent.userIds());
+    }
+
+    @ApplicationModuleListener
+    public void revokedSession(AuthenticationRevokedSessionRegisteredEvent event){
+        authenticationImp.revokedSessionExpiredCron();
+    }
+
+    @ApplicationModuleListener
+    public void cleanupDevice(AuthenticationCleanupDeviceRegisteredEvent event){
+        authenticationImp.cleanupDeviceCron();
+    }
+
+    @ApplicationModuleListener
+    public void cleanupSession(AuthenticationCleanupSessionRegisteredEvent event){
+        authenticationImp.cleanupSessionCron();
     }
 }

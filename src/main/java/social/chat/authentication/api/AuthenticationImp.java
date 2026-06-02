@@ -19,5 +19,8 @@ public interface AuthenticationImp {
     ResponseCookie getResponseCookie(String paramName, String paramValue, Duration duration);
     void updateValidatedSession(Long sessionId, boolean validated);
     void deleteSessionByUserIds(List<Long> userIds);
-    void checkSession(Long sessionId);
+    void checkSession(Long sessionId, String ipAddress, String location, boolean saveDb);
+    void revokedSessionExpiredCron();
+    void cleanupDeviceCron();
+    void cleanupSessionCron();
 }

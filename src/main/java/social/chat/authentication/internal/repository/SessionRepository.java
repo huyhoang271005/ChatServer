@@ -3,10 +3,13 @@ package social.chat.authentication.internal.repository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import social.chat.authentication.internal.entity.Device;
 import social.chat.authentication.internal.entity.Session;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,4 +33,30 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
     Slice<Session> findByUserIdAndLastId(Long userId, Long lastId, Pageable pageable);
 
     int deleteByUserIdAndSessionId(Long userId, Long sessionId);
+
+    @Query("""
+            select s.sessionId
+            from Session s
+            where s.lastLogin < :timeMinus
+            """)
+    List<Long> findSessionIdsByTimeMinus(Instant timeMinus);
+
+    @Modifying
+    @Query("""
+            update Session s
+            set s.revoked = true
+            where s.sessionId in :sessionIds
+            """)
+    int revokeSessionBySessionIds(List<Long> sessionIds);
+
+    @Query("""
+            select s.sessionId
+            from Session s
+            where s.lastLogin < :timeMinus
+            """)
+    List<Long> findSessionIdByLastLoginBefore(Instant timeMinus);
+
+    int deleteBySessionIdIn(List<Long> sessionIds);
+
+    Optional<Session> findBySessionIdAndUserId(Long sessionId, Long userId);
 }

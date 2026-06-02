@@ -14,6 +14,7 @@ import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.dto.FirebaseLoginRequest;
 import social.chat.authentication.api.dto.SessionValidation;
 import social.chat.authentication.api.dto.TokenDto;
+import social.chat.shared.common.GlobalParamName;
 import social.chat.shared.exception.ConflictException;
 import social.chat.authentication.api.dto.LoginRequest;
 import social.chat.authentication.internal.entity.*;
@@ -98,7 +99,7 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public Response<TokenDto> refreshToken(String refreshToken, Long deviceId) {
+    public Response<TokenDto> refreshToken(String refreshToken, Long deviceId, String ipAddress, String location) {
         Jwt jwt;
         try {
             jwt = jwtDecoder.decode(refreshToken);
@@ -112,6 +113,7 @@ public class AuthenticationService {
         }
         Long userId = Long.parseLong(jwt.getSubject());
         userImp.getRoleIdAndCheckAccountStatus(userId);
+        authenticationImp.checkSession(jwt.getClaim(GlobalParamName.Jwt.SESSION_ID), ipAddress, location, true);
         TokenDto tokenDto = new TokenDto();
         createToken(deviceId, userId, null, tokenDto, jwt.getExpiresAt());
         return Response.success(

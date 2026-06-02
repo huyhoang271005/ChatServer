@@ -33,4 +33,11 @@ public class SessionController {
         return ResponseEntity.ok(sessionService.deleteSession(Long.parseLong(jwt.getSubject()),
                 sessionId));
     }
+
+    @PatchMapping("revoke/{sessionId}")
+    public ResponseEntity<Response<?>> revokedSession(@PathVariable Long sessionId,
+                                                      @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(sessionService.revokedSession(Long.parseLong(jwt.getSubject()),
+                sessionId));
+    }
 }

@@ -6,6 +6,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.modulith.NamedInterface;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.List;
 
@@ -17,7 +18,7 @@ import java.util.List;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class RolePermissionDto {
+public class RolePermissionDto implements Serializable {
     String roleId;
     @NotBlank
     String roleName;

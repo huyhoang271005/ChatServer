@@ -61,9 +61,7 @@ public class WebsocketConfig implements WebSocketMessageBrokerConfigurer {
                     String bearerToken = accessor.getFirstNativeHeader("Authorization");
 
                     if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-                        log.info("Bearer Token: {}", bearerToken);
                         String token = bearerToken.substring(7);
-                        log.info("Token: {}", token);
                         try {
                             Jwt jwt = jwtDecoder.decode(token);
                             AbstractAuthenticationToken authentication = customJwtAuthenticationConverter.convert(jwt);
@@ -79,6 +77,7 @@ public class WebsocketConfig implements WebSocketMessageBrokerConfigurer {
                             throw new MessageDeliveryException("UNAUTHORIZED:TOKEN_EXPIRED");
                         }
                     }
+                    log.error("Bearer token is {}", bearerToken);
                     throw new MessageDeliveryException("UNAUTHORIZED:TOKEN_INVALID");
                 }
                 return message;

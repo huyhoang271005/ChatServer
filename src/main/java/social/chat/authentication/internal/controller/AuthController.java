@@ -74,8 +74,10 @@ public class AuthController {
     public ResponseEntity<Response<?>> refreshToken(@CookieValue(name = GlobalParamName.Cookie.REFRESH_TOKEN)
                                                     String refreshToken,
                                                     @CookieValue(name = GlobalParamName.Cookie.DEVICE_ID)
-                                                    Long deviceId) {
-        var response =  authenticationService.refreshToken(refreshToken, deviceId);
+                                                    Long deviceId, HttpServletRequest request) {
+        var response =  authenticationService.refreshToken(refreshToken, deviceId,
+                String.valueOf(request.getAttribute(GlobalParamName.Attribute.IP_ADDRESS)),
+                String.valueOf(request.getAttribute(GlobalParamName.Attribute.LOCATION)));
         response.getData().setRefreshToken(null);
         return ResponseEntity.ok(response);
     }

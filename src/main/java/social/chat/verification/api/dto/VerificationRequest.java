@@ -5,9 +5,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.springframework.modulith.NamedInterface;
 import social.chat.authentication.api.dto.AuthRegexValidation;
 import social.chat.verification.internal.VerificationMessage;
 
+@NamedInterface
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter

@@ -26,7 +26,7 @@ public class RoleCache {
     @Transactional(readOnly = true)
     @Cacheable(value = "roles", key = "#roleId")
     public RolePermissionDto getRolePermissionsCache(Long roleId) {
-        log.info("Cache role permissions for role {} ", roleId);
+        log.info("Cached role permissions for role {} ", roleId);
         return roleRepository.findById(roleId)
                 .map(role -> {
                     RolePermissionDto rolePermissionDto = roleMapper.toRolePermissionDto(role);
