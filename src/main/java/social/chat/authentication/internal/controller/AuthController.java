@@ -58,7 +58,7 @@ public class AuthController {
                 String.valueOf(request.getAttribute(GlobalParamName.Attribute.IP_ADDRESS)),
                 String.valueOf(request.getAttribute(GlobalParamName.Attribute.LOCATION)));
         ResponseCookie cookieDevice = authenticationImp.getResponseCookie(GlobalParamName.Cookie.DEVICE_ID,
-                response.getData().getDeviceId(), Duration.ofDays(3650));
+                String.valueOf(response.getData().getDeviceId()), Duration.ofDays(3650));
         ResponseCookie cookieToken = authenticationImp.getResponseCookie(GlobalParamName.Cookie.REFRESH_TOKEN,
                 response.getData().getRefreshToken(), Duration.ofSeconds(jwtProperties.getRefreshTokenExpire()));
         response.getData().setRefreshToken(null);

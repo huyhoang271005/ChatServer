@@ -155,7 +155,7 @@ public class VerificationService {
     @Transactional
     public Response<Void> verify(VerificationRequest verificationRequest) {
         Verification verification = verificationRepository
-                .findById(Long.parseLong(verificationRequest.getVerificationId()))
+                .findById(verificationRequest.getVerificationId())
                 .orElseThrow(() -> new EntityNotFoundException(VerificationMessage.Verification.NOT_EXISTS));
         if(verification.getVerificationStatus() == VerificationStatus.USED){
             throw new ConflictException(VerificationMessage.Verification.USED);
@@ -169,10 +169,13 @@ public class VerificationService {
         switch (verification.getVerificationType()){
             case VERIFICATION_EMAIL -> {
                 profileImp.verifiedEmail(verification.getTypeId());
+                boolean existProfile = profileImp.existsProfileByUserId(userId);
+                boolean updatedProfile = existProfile && profileImp.getUpdated(userId);
                 if(userImp.isInactive(userId)){
                     authenticationImp.updateValidatedSession(verification.getSessionId(), true);
+                    userImp.updateInactiveToPendingProfileOrActive(userId, updatedProfile);
                 }
-                userImp.updateInactiveToPendingProfileOrActive(userId, profileImp.getUpdated(userId));
+                userImp.updateInactiveToPendingProfileOrActive(userId, updatedProfile);
             }
             case VERIFICATION_DEVICE -> authenticationImp.updateValidatedSession(verification.getSessionId(),
                     true);

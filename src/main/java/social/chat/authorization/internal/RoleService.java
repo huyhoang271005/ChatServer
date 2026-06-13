@@ -12,7 +12,6 @@ import social.chat.authorization.api.dto.RolePermissionDto;
 import social.chat.authorization.api.events.AuthorizationUpdateRoleToUserRegisteredEvent;
 import social.chat.authorization.internal.entity.Permission;
 import social.chat.authorization.internal.entity.Role;
-import social.chat.authorization.internal.entity.RolePermission;
 import social.chat.authorization.internal.enums.RoleDefault;
 import social.chat.authorization.internal.mapper.PermissionMapper;
 import social.chat.authorization.internal.mapper.RoleMapper;
@@ -49,18 +48,12 @@ public class RoleService {
         Role role = roleMapper.toRole(rolePermissionDto);
         List<Permission> permissions = permissionRepository.findAllById(rolePermissionDto.getPermissions()
                 .stream()
-                .map(permissionDto -> Long.valueOf(permissionDto.getPermissionId()))
+                .map(PermissionDto::getPermissionId)
                 .toList());
-        List<RolePermission> rolePermissions = permissions.stream()
-                        .map(permission -> RolePermission.builder()
-                                .role(role)
-                                .permission(permission)
-                                .build())
-                        .toList();
-        role.setRolePermissions(rolePermissions);
-       roleRepository.save(role);
+        role.addRolePermission(permissions);
+        roleRepository.save(role);
 
-        List<PermissionDto> permissionDtos = rolePermissions.stream()
+        List<PermissionDto> permissionDtos = role.getRolePermissions().stream()
                 .map(rolePermission -> {
                     PermissionDto permissionDto = permissionMapper.toPermissionDto(rolePermission.getPermission());
                     permissionDto.setRolePermissionId(rolePermission.getRolePermissionId());
@@ -77,9 +70,10 @@ public class RoleService {
 
     @Transactional
     public Response<RolePermissionDto> updateRole(RolePermissionDto rolePermissionDto) {
-        Role role = roleRepository.findById(Long.parseLong(rolePermissionDto.getRoleId()))
+        Role role = roleRepository.findById(rolePermissionDto.getRoleId())
                 .orElseThrow(() -> new EntityNotFoundException(AuthorizationMessage.Role.NOT_EXISTS));
-        if(rolePermissionDto.getRoleName().equals(RoleDefault.ADMIN.name())) {
+        if(rolePermissionDto.getRoleName().equals(RoleDefault.ADMIN.name()) ||
+            rolePermissionDto.getRoleName().equals(RoleDefault.USER.name())) {
             throw new ConflictException(AuthorizationMessage.Role.DEFAULT_CAN_UPDATE, role.getRoleName());
         }
         if(role.getDeletedAt() != null) {
@@ -87,19 +81,14 @@ public class RoleService {
         }
         List<Permission> permissions = permissionRepository.findAllById(rolePermissionDto.getPermissions()
                 .stream()
-                .map(permissionDto -> Long.valueOf(permissionDto.getPermissionId()))
+                .map(PermissionDto::getPermissionId)
                 .toList());
-        rolePermissionRepository.deleteAll(role.getRolePermissions());
-        List<RolePermission> rolePermissions = permissions.stream()
-                .map(permission -> RolePermission.builder()
-                        .role(role)
-                        .permission(permission)
-                        .build())
-                .toList();
-        rolePermissionRepository.saveAll(rolePermissions);
+        rolePermissionRepository.deleteByRole(role);
+        role.addRolePermission(permissions);
+        roleRepository.save(role);
         roleCache.deleteRolePermissionCache(role.getRoleId());
         RolePermissionDto rolePermissionDto1 = roleMapper.toRolePermissionDto(role);
-        rolePermissionDto1.setPermissions(rolePermissions.stream()
+        rolePermissionDto1.setPermissions(role.getRolePermissions().stream()
                 .map(rolePermission -> {
                     PermissionDto permissionDto = permissionMapper.toPermissionDto(rolePermission.getPermission());
                     permissionDto.setRolePermissionId(rolePermission.getRolePermissionId());

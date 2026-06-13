@@ -63,18 +63,15 @@ public class RolePermissionInit implements ApplicationRunner {
         rolePermissionRepository.deleteByRole(roleAdmin);
 
         //  CỨU CÁNH Ở ĐÂY: Dùng danh sách TỔNG (existingPermissions) chứa TẤT CẢ các quyền để lưu
-        rolePermissionRepository.saveAll(existingPermissions.stream()
-                .map(permission -> RolePermission.builder()
-                        .role(roleAdmin)
-                        .permission(permission)
-                        .build())
-                .toList());
+        roleAdmin.addRolePermission(existingPermissions);
+        roleRepository.save(roleAdmin);
 
         // 6. Khởi tạo Role USER nếu chưa có
-        roleRepository.findByRoleName(RoleDefault.USER.name())
+        Role roleUser = roleRepository.findByRoleName(RoleDefault.USER.name())
                 .orElseGet(() -> roleRepository.save(Role.builder()
                         .roleName(RoleDefault.USER.name())
                         .build()));
+        rolePermissionRepository.deleteByRole(roleUser);
 
         log.info("Role Permission initialized");
     }

@@ -7,7 +7,8 @@ import social.chat.authentication.internal.enums.TokenType;
 import social.chat.shared.generateId.GenerateId;
 
 @Table(name = "tokens", indexes = {
-        @Index(name = "idx_token_session", columnList = "session_id")
+        @Index(name = "idx_token_session", columnList = "session_id"),
+        @Index(name = "idx_token_session_token_type", columnList = "session_id, token_type")
 })
 @Entity
 @Getter
@@ -22,7 +23,7 @@ public class Token {
     @Column(name = "token_id")
     Long tokenId;
 
-    @Column(name = "token_value",columnDefinition = "VARCHAR(MAX)")
+    @Column(name = "token_value", length = 700)
     String tokenValue;
 
     @Enumerated(EnumType.STRING)

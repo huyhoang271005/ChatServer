@@ -15,7 +15,7 @@ import java.io.Serializable;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PermissionDto implements Serializable {
-    String permissionId;
+    Long permissionId;
     Long rolePermissionId;
     @NotBlank
     String permissionName;

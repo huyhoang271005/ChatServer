@@ -9,13 +9,17 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageDeliveryException;
+import org.springframework.messaging.handler.invocation.HandlerMethodArgumentResolver;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.modulith.NamedInterface;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -23,6 +27,10 @@ import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 import social.chat.shared.security.CustomJwtAuthenticationConverter;
 
+import java.security.Principal;
+import java.util.List;
+
+@NamedInterface
 @Slf4j
 @Configuration
 @EnableWebSocketMessageBroker
@@ -55,30 +63,52 @@ public class WebsocketConfig implements WebSocketMessageBrokerConfigurer {
                                                @NonNull MessageChannel channel) {
                 StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-                if (accessor != null && (StompCommand.CONNECT.equals(accessor.getCommand()) ||
-                        StompCommand.SEND.equals(accessor.getCommand()) ||
-                        StompCommand.SUBSCRIBE.equals(accessor.getCommand()))) {
-                    String bearerToken = accessor.getFirstNativeHeader("Authorization");
+                if (accessor != null) {
+                    StompCommand command = accessor.getCommand();
 
-                    if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-                        String token = bearerToken.substring(7);
-                        try {
-                            Jwt jwt = jwtDecoder.decode(token);
-                            AbstractAuthenticationToken authentication = customJwtAuthenticationConverter.convert(jwt);
-                            if (authentication != null) {
-                                accessor.setUser(authentication);
+                    // 1. CHỈ GIẢI MÃ TOKEN KHI CONNECT
+                    if (StompCommand.CONNECT.equals(command)) {
+                        String bearerToken = accessor.getFirstNativeHeader("Authorization");
+
+                        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+                            String token = bearerToken.substring(7);
+                            try {
+                                Jwt jwt = jwtDecoder.decode(token);
+                                AbstractAuthenticationToken authentication = customJwtAuthenticationConverter.convert(jwt);
+
+                                if (authentication != null) {
+                                    accessor.setUser(authentication);
+                                    SecurityContext context = SecurityContextHolder.createEmptyContext();
+                                    context.setAuthentication(authentication);
+                                    SecurityContextHolder.setContext(context);
+                                }
+                                return message;
+                            } catch (Exception e) {
+                                throw new MessageDeliveryException("UNAUTHORIZED:TOKEN_EXPIRED");
                             }
-                            if(StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
-                                Long userId = Long.parseLong(jwt.getSubject());
+                        }
+                        throw new MessageDeliveryException("UNAUTHORIZED:TOKEN_INVALID");
+                    }
+
+                    // 2. LỆNH SUBSCRIBE CHỈ CẦN LẤY USER ĐÃ GHIM RA CHECK QUYỀN (Không giải mã lại)
+                    if (StompCommand.SUBSCRIBE.equals(command)) {
+                        Principal principal = accessor.getUser(); // Tự động có nhờ lệnh CONNECT ghim trước đó
+                        if (principal == null) {
+                            throw new MessageDeliveryException("UNAUTHORIZED");
+                        }
+
+                        String destination = accessor.getDestination();
+                        if (destination != null) {
+                            String stringSubscribe = destination.split("/")[2];
+                            Long userIdSubscribe = Long.parseLong(stringSubscribe.split("\\.")[1]);
+                            Long userId = Long.parseLong(principal.getName());
+
+                            if (!userId.equals(userIdSubscribe)) {
+                                throw new MessageDeliveryException("FORBIDDEN");
                             }
-                            return message;
-                        } catch (Exception e) {
-                            log.error(e.getMessage());
-                            throw new MessageDeliveryException("UNAUTHORIZED:TOKEN_EXPIRED");
+                            log.info("subscribed to {}", destination);
                         }
                     }
-                    log.error("Bearer token is {}", bearerToken);
-                    throw new MessageDeliveryException("UNAUTHORIZED:TOKEN_INVALID");
                 }
                 return message;
             }

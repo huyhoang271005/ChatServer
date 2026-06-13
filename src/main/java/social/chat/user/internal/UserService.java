@@ -45,7 +45,7 @@ public class UserService {
         return Response.success(
                 GlobalMessage.Success.CREATED,
                 TokenDto.builder()
-                        .userId(String.valueOf(user.getUserId()))
+                        .userId(user.getUserId())
                         .build()
         );
     }
@@ -67,18 +67,18 @@ public class UserService {
         return Response.success(
                 GlobalMessage.Success.GET,
                 ExtendUser.builder()
-                        .userId(String.valueOf(user.getUserId()))
+                        .userId(userId)
                         .accountStatus(user.getAccountStatus())
-                        .roleId(String.valueOf(user.getRoleId()))
+                        .roleId(user.getRoleId())
                         .build()
         );
     }
 
     @Transactional
     public Response<Void> updateExtendedUser(ExtendUser extendUser) {
-        User user = userRepository.findById(Long.parseLong(extendUser.getUserId()))
+        User user = userRepository.findById(extendUser.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException(UserMessage.User.NOT_EXITS));
-        authorizationImp.existsRoleByRoleIdAndNotDelete(Long.parseLong(extendUser.getRoleId()));
+        authorizationImp.existsRoleByRoleIdAndNotDelete(extendUser.getRoleId());
         if(extendUser.getAccountStatus() == AccountStatus.BANNED && (
         extendUser.getExpireAt() == null || extendUser.getExpireAt().isBefore(Instant.now()))){
             throw new ConflictException(UserMessage.Account.TIME_BANNED_INVALID,
@@ -88,8 +88,8 @@ public class UserService {
         extendUser.getAccountStatus() == AccountStatus.PENDING_PROFILE) {
             throw new ConflictException(UserMessage.Account.INVALID);
         }
-        userCache.updateUserCache(Long.parseLong(extendUser.getUserId()),
-                Long.parseLong(extendUser.getRoleId()),
+        userCache.updateUserCache(extendUser.getUserId(),
+                extendUser.getRoleId(),
                 extendUser.getAccountStatus(), extendUser.getExpireAt(), true);
         return Response.success(
                 GlobalMessage.Success.UPDATED,

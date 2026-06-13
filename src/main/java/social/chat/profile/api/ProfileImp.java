@@ -4,6 +4,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.modulith.NamedInterface;
 import social.chat.profile.api.dto.EmailResponse;
+import social.chat.profile.api.dto.ProfileShortDto;
 
 import java.util.List;
 
@@ -18,4 +19,5 @@ public interface ProfileImp {
     Long getUserIdByEmail(String emailName);
     boolean getUpdated(Long userId);
     void deleteEmailAndProfileByUserIds(List<Long> userIds);
+    List<ProfileShortDto> getShortProfiles(List<Long> userIds);
 }

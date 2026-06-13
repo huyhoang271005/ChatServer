@@ -25,7 +25,7 @@ public class User {
     @Column(name = "user_id")
     Long userId;
 
-    @Column(name = "password_hash", columnDefinition = "VARCHAR(225)")
+    @Column(name = "password_hash", length = 500)
     String passwordHash;
 
     @Enumerated(EnumType.STRING)

@@ -23,4 +23,5 @@ public interface AuthenticationImp {
     void revokedSessionExpiredCron();
     void cleanupDeviceCron();
     void cleanupSessionCron();
+    List<String> getFcmTokenByUserIds(List<Long> userIds);
 }

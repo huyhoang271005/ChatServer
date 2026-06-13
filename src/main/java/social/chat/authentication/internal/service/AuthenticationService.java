@@ -53,6 +53,7 @@ public class AuthenticationService {
                 .flatMap(device -> sessionRepository.findByDeviceAndUserId(device, userId))
                 .ifPresent(session -> {
                     String refreshToken = jwtService.generateJwt(userId, session.getSessionId(), true, timeExpired);
+                    log.info("Generated refresh token");
                     Token tokenJwt = tokenRepository.findBySessionAndTokenType(session, TokenType.REFRESH_TOKEN)
                             .orElseGet(() -> Token.builder()
                                     .tokenType(TokenType.REFRESH_TOKEN)
@@ -71,6 +72,7 @@ public class AuthenticationService {
                     session.setLastLogin(Instant.now());
                     session.setRevoked(false);
                     tokenDto.setAccessToken(jwtService.generateJwt(userId, session.getSessionId(), false, timeExpired));
+                    log.info("Generated access token");
                     tokenDto.setRefreshToken(refreshToken);
                     tokenDto.setVerifiedDevice(session.getValidated());
                 });
@@ -85,7 +87,7 @@ public class AuthenticationService {
             throw new ConflictException(AuthenticationMessage.Validation.PASSWORD_INCORRECT);
         }
         TokenDto tokenDto = TokenDto.builder()
-                .userId(String.valueOf(userId))
+                .userId(userId)
                 .hasProfile(hasProfile)
                 .verifiedEmail(emailResponse.getVerified())
                 .verifiedDevice(false)
@@ -136,12 +138,12 @@ public class AuthenticationService {
             SessionValidation sessionValidation = authenticationImp.createSessionByDevice(userId, deviceId, deviceName, deviceType, userAgent,
                     ipAddress, location, true, true);
             TokenDto tokenDto = TokenDto.builder()
-                    .userId(String.valueOf(userId))
+                    .userId(userId)
                     .hasProfile(profileImp.existsProfileByUserId(userId))
                     .updateProfile(profileImp.getUpdated(userId))
                     .verifiedEmail(true)
                     .verifiedDevice(true)
-                    .deviceId(String.valueOf(sessionValidation.getDeviceId()))
+                    .deviceId(sessionValidation.getDeviceId())
                     .build();
             createToken(deviceId, userId, firebaseLoginRequest.getFcmToken(), tokenDto, null);
             return Response.success(

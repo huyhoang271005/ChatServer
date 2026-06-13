@@ -22,6 +22,5 @@ public class LoginRequest {
     String emailName;
     @Pattern(regexp = AuthRegexValidation.PASSWORD, message = AuthenticationMessage.Validation.PASSWORD_INVALID)
     String password;
-    @NotBlank
     String fcmToken;
 }

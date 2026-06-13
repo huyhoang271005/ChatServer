@@ -19,10 +19,11 @@ public interface EmailRepository extends JpaRepository<Email, Long> {
     List<Email> findByUserId(Long userId);
 
     @Query("""
-            select e.userId
+            select distinct e.userId
             from Email e
             where (:emailName is null or e.emailName like concat('%', :emailName, '%'))
             and (:lastId is null or e.userId < :lastId)
+            order by e.userId desc
             """)
     Slice<Long> findUserIdsByEmailName(String emailName, Long lastId, Pageable pageable);
 }

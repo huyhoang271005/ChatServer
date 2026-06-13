@@ -5,6 +5,8 @@ spring:
     name: ${APP_NAME}
     frontend-url: ${FRONTEND_URL}
     backend-url: ${BACKEND_URL}
+    app-image: ${APP_IMAGE}
+    unknow-user-url: ${UNKNOW_USER_URL}
   cache:
     type: caffeine
     caffeine:

@@ -11,7 +11,6 @@ import java.util.List;
 
 @Table(name = "sessions", indexes = {
         @Index(name = "idx_session_user", columnList = "user_id"),
-        @Index(name = "idx_session_created_at", columnList = "created_at"),
         @Index(name = "idx_session_device", columnList = "device_id")
 })
 @Entity
@@ -27,14 +26,13 @@ public class Session {
     @Column(name = "session_id")
     Long sessionId;
 
-    @Column(columnDefinition = "NVARCHAR(225)")
     String location;
 
     Boolean validated;
 
     Boolean revoked;
 
-    @Column(name = "ip_address", columnDefinition = "VARCHAR(50)")
+    @Column(name = "ip_address", length = 50)
     String ipAddress;
 
     @Column(name = "last_login")

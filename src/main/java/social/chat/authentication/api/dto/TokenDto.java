@@ -12,8 +12,8 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TokenDto {
-    String userId;
-    String deviceId;
+    Long userId;
+    Long deviceId;
     Boolean verifiedEmail;
     Boolean verifiedDevice;
     String accessToken;

@@ -25,7 +25,7 @@ public class Email {
     @Column(name = "email_id")
     Long emailId;
 
-    @Column(name = "email_name", columnDefinition = "VARCHAR(125)")
+    @Column(name = "email_name", length = 125)
     String emailName;
 
     Boolean verified;

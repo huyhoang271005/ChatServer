@@ -13,7 +13,7 @@ import java.time.Instant;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class EmailDto {
-    String emailId;
+    Long emailId;
     String emailName;
     Boolean verified;
     Instant createdAt;

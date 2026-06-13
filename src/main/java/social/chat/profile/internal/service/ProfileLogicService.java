@@ -6,6 +6,8 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import social.chat.profile.api.dto.ProfileShortDto;
+import social.chat.profile.internal.cache.ProfileCache;
 import social.chat.shared.exception.ConflictException;
 import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.profile.api.ProfileImp;
@@ -27,6 +29,7 @@ public class ProfileLogicService implements ProfileImp {
     EmailRepository emailRepository;
     ProfileRepository profileRepository;
     UserImp userImp;
+    ProfileCache profileCache;
 
     @Override
     @Transactional(readOnly = true)
@@ -106,5 +109,11 @@ public class ProfileLogicService implements ProfileImp {
     public void deleteEmailAndProfileByUserIds(List<Long> userIds) {
         profileRepository.deleteAllById(userIds);
         emailRepository.deleteByUserIdIn(userIds);
+    }
+
+    @Override
+    @Transactional
+    public List<ProfileShortDto> getShortProfiles(List<Long> userIds) {
+        return profileCache.getShortProfileByUserIds(userIds);
     }
 }

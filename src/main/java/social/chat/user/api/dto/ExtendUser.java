@@ -17,8 +17,8 @@ import java.time.Instant;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ExtendUser {
-    String userId;
+    Long userId;
     AccountStatus accountStatus;
-    String roleId;
+    Long roleId;
     Instant expireAt;
 }

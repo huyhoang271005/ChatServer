@@ -21,6 +21,7 @@ import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.verification.api.events.VerificationDeleteBySessionIdsRegisteredEvent;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -37,7 +38,7 @@ public class SessionService {
         Slice<Session> sessions = sessionRepository.findByUserIdAndLastId(userId, lastId, pageable);
         List<SessionDto> sessionDtos = sessionMapper.toSessionDto(sessions.getContent());
         sessionDtos.forEach(sessionDto -> sessionDto
-                .setMySession(Long.parseLong(sessionDto.getSessionId()) == sessionId));
+                .setMySession(Objects.equals(sessionDto.getSessionId(), sessionId)));
         return Response.success(
                 GlobalMessage.Success.GET,
                 new ResponseList<>(

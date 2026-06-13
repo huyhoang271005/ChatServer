@@ -13,7 +13,7 @@ import java.time.Instant;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SessionDto {
-    String sessionId;
+    Long sessionId;
     String location;
     Boolean validated;
     Boolean revoked;

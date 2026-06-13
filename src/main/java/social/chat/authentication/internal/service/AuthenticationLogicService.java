@@ -20,6 +20,7 @@ import social.chat.authentication.internal.entity.Device;
 import social.chat.authentication.internal.entity.Session;
 import social.chat.authentication.internal.repository.DeviceRepository;
 import social.chat.authentication.internal.repository.SessionRepository;
+import social.chat.authentication.internal.repository.TokenRepository;
 import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.shared.exception.UnauthorizedException;
 import social.chat.shared.security.JwtService;
@@ -41,7 +42,8 @@ public class AuthenticationLogicService implements AuthenticationImp {
     SessionCache sessionCache;
     ApplicationEventPublisher applicationEventPublisher;
     JwtProperties jwtProperties;
-    AuthenticationCronjobProperties aAuthenticationCronjobProperties;
+    AuthenticationCronjobProperties authenticationCronjobProperties;
+    TokenRepository tokenRepository;
 
     @Override
     @Transactional
@@ -159,11 +161,17 @@ public class AuthenticationLogicService implements AuthenticationImp {
     @Transactional
     public void cleanupSessionCron() {
         List<Long> sessionIds = sessionRepository.findSessionIdByLastLoginBefore(Instant.now()
-                .minusSeconds(aAuthenticationCronjobProperties
+                .minusSeconds(authenticationCronjobProperties
                         .getDaysToKeepSessionExpired()));
         int sessionDeleted = sessionRepository.deleteBySessionIdIn(sessionIds);
         applicationEventPublisher
                 .publishEvent(new VerificationDeleteBySessionIdsRegisteredEvent(sessionIds));
         log.info("{} sessions deleted by scheduled", sessionDeleted);
+    }
+
+    @Override
+    @Transactional
+    public List<String> getFcmTokenByUserIds(List<Long> userIds) {
+        return tokenRepository.findFcmTokeValueByUserIds(userIds);
     }
 }

@@ -13,7 +13,9 @@ import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.dto.TokenDto;
 import social.chat.cloudinary.api.events.CloudinaryRegisteredEvent;
 import social.chat.profile.api.dto.ProfileShortDto;
+import social.chat.profile.internal.cache.ProfileCache;
 import social.chat.profile.internal.repository.EmailRepository;
+import social.chat.shared.common.ApplicationProperties;
 import social.chat.shared.common.GlobalMessage;
 import social.chat.shared.dto.Response;
 import social.chat.shared.dto.ResponseList;
@@ -39,6 +41,8 @@ public class ProfileService {
     AuthenticationImp authenticationImp;
     ApplicationEventPublisher applicationEventPublisher;
     EmailRepository emailRepository;
+    ProfileCache profileCache;
+    ApplicationProperties applicationProperties;
 
     @Transactional
     public Response<TokenDto> createProfile(Long userId, String fullName, Long deviceId) {
@@ -74,6 +78,7 @@ public class ProfileService {
         }
         profileMapper.updateProfile(profileDto, profile);
         profile.setUpdated(true);
+        profileCache.deleteShortProfile(userId);
         userImp.updateAccountStatusFromPendingToActive(profile.getUserId());
         return Response.success(
                 GlobalMessage.Success.UPDATED,
@@ -83,10 +88,23 @@ public class ProfileService {
 
     @Transactional(readOnly = true)
     public Response<ProfileDto> getProfile(Long userId) {
+        ProfileDto profileDto = profileMapper.toProfileDTO(profileRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException(ProfileMessage.Profile.NOT_EXITS)));
+        if(profileDto.getAvatarId() == null) {
+            profileDto.setAvatarUrl(applicationProperties.getUnknowUserUrl());
+        }
         return Response.success(
                 GlobalMessage.Success.GET,
-                profileMapper.toProfileDTO(profileRepository.findById(userId)
-                        .orElseThrow(() -> new EntityNotFoundException(ProfileMessage.Profile.NOT_EXITS)))
+                profileDto
+        );
+    }
+
+    @Transactional
+    public Response<ProfileShortDto> getProfileShort(Long userId) {
+        List<ProfileShortDto> profileShortDtos = profileCache.getShortProfileByUserIds(List.of(userId));
+        return Response.success(
+                GlobalMessage.Success.GET,
+                profileShortDtos.getFirst()
         );
     }
 
@@ -99,7 +117,13 @@ public class ProfileService {
                 new ResponseList<>(
                         profiles
                                 .stream()
-                                .map(profileMapper::toProfileShortDto)
+                                .map(profileInfo -> {
+                                    ProfileShortDto profileShortDto = profileMapper.toProfileShortDto(profileInfo);
+                                    if(profileShortDto.getAvatarUrl() == null){
+                                        profileShortDto.setAvatarUrl(applicationProperties.getUnknowUserUrl());
+                                    }
+                                    return profileShortDto;
+                                })
                                 .toList(),
                         userSlice.hasNext()
                 )

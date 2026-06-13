@@ -18,6 +18,7 @@ import social.chat.shared.common.GlobalParamName;
 import social.chat.profile.api.dto.FullNameRequest;
 import social.chat.profile.api.dto.ProfileDto;
 import social.chat.profile.internal.service.ProfileService;
+import social.chat.shared.dto.Response;
 
 import java.time.Duration;
 
@@ -65,5 +66,10 @@ public class ProfileController {
                                          @RequestParam(name = "emailName", required = false) String emailName,
                                          Pageable pageable) {
         return ResponseEntity.ok(profileService.getProfiles(lastId, emailName, pageable));
+    }
+
+    @GetMapping("short")
+    public ResponseEntity<Response<?>> getShortProfile(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(profileService.getProfileShort(Long.parseLong(jwt.getSubject())));
     }
 }

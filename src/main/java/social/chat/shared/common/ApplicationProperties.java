@@ -16,4 +16,6 @@ public class ApplicationProperties {
     String name;
     String backendUrl;
     String frontendUrl;
+    String appImage;
+    String unknowUserUrl;
 }

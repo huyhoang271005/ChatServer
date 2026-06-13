@@ -19,7 +19,7 @@ import java.time.LocalDate;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ProfileDto extends FullNameRequest{
-    String userId;
+    Long userId;
     @NotBlank
     @Pattern(regexp = ProfileRegexValidation.USERNAME, message = ProfileMessage.Validation.USERNAME_INVALID)
     String username;

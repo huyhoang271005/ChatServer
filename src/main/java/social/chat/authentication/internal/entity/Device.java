@@ -3,6 +3,7 @@ package social.chat.authentication.internal.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.Nationalized;
 import social.chat.shared.generateId.GenerateId;
 
 import java.util.List;
@@ -21,13 +22,14 @@ public class Device {
     @Column(name = "device_id")
     Long deviceId;
 
-    @Column(name = "device_name", columnDefinition = "NVARCHAR(125)")
+    @Nationalized
+    @Column(name = "device_name", length = 125)
     String deviceName;
 
-    @Column(name = "device_type", columnDefinition = "VARCHAR(50)")
+    @Column(name = "device_type", length = 50)
     String deviceType;
 
-    @Column(name = "user_agent", columnDefinition = "VARCHAR(225)")
+    @Column(name = "user_agent")
     String userAgent;
 
     @OneToMany(mappedBy = "device", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

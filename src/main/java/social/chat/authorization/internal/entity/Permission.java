@@ -21,7 +21,7 @@ public class Permission {
     @Column(name = "permission_id")
     Long permissionId;
 
-    @Column(name = "permission_name", columnDefinition = "VARCHAR(125)")
+    @Column(name = "permission_name", length = 125)
     String permissionName;
 
     @OneToMany(mappedBy = "permission", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

@@ -3,6 +3,7 @@ package social.chat.profile.internal.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.Nationalized;
 import org.hibernate.annotations.UpdateTimestamp;
 import social.chat.profile.internal.enums.Gender;
 
@@ -22,16 +23,17 @@ public class Profile {
     @Column(name = "user_id")
     Long userId;
 
-    @Column(name = "full_name", columnDefinition = "NVARCHAR(50)")
+    @Nationalized
+    @Column(name = "full_name", length = 125)
     String fullName;
 
-    @Column(name = "username", columnDefinition = "VARCHAR(50)")
+    @Column(name = "username", length = 125)
     String username;
 
-    @Column(name = "avatar_id", columnDefinition = "VARCHAR(125)")
+    @Column(name = "avatar_id", length = 125)
     String avatarId;
 
-    @Column(name = "avatar_url", columnDefinition = "VARCHAR(MAX)")
+    @Column(name = "avatar_url", length = 500)
     String avatarUrl;
 
     @Enumerated(EnumType.STRING)

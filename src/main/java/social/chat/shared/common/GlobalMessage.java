@@ -30,4 +30,11 @@ public final class GlobalMessage {
         public static final String HOUR = "global.rate-limit.hour";
         public static final String SECOND = "global.rate-limit.second";
     }
+
+    public static final class Message {
+        public static final String IMAGE = "global.image";
+        public static final String VIDEO =  "global.video";
+        public static final String FILE = "global.file";
+        public static final String AUDIO = "global.audio";
+    }
 }
