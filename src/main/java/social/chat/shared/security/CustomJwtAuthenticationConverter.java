@@ -49,9 +49,9 @@ public class CustomJwtAuthenticationConverter implements Converter<Jwt, Abstract
         authenticationImp.checkSession(source.getClaim(GlobalParamName.Jwt.SESSION_ID), ipAddress,
                 location, false);
         RolePermissionDto rolePermissionDto = authorizationImp.getRolePermissionByRoleId(roleId);
-        List<GrantedAuthority> authorities = rolePermissionDto.getPermissions()
+        List<GrantedAuthority> authorities = rolePermissionDto.permissions()
                 .stream()
-                .map(PermissionDto::getPermissionName)
+                .map(PermissionDto::permissionName)
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
         return new JwtAuthenticationToken(source, authorities);

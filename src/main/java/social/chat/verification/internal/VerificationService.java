@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.dto.AuthRegexValidation;
 import social.chat.authentication.api.dto.SessionValidation;
+import social.chat.profile.api.dto.EmailDto;
 import social.chat.verification.api.dto.VerificationRequest;
 import social.chat.verification.api.dto.VerificationResponse;
 import social.chat.verification.api.events.VerificationSendEmailRegisteredEvent;
@@ -24,7 +25,6 @@ import social.chat.shared.exception.ConflictException;
 import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.shared.exception.UnprocessableException;
 import social.chat.profile.api.ProfileImp;
-import social.chat.profile.api.dto.EmailResponse;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -50,13 +50,13 @@ public class VerificationService {
                                       String emailName, Long deviceId, String deviceName,
                                       String deviceType, String userAgent, String ipAddress,
                                       String location, int expireAfterHour, String webUrl) {
-        EmailResponse emailResponse = profileImp.getUserByEmail(emailName);
-        SessionValidation sessionValidation = authenticationImp.createSessionByDevice(emailResponse.getUserId(), deviceId, deviceName, deviceType,
+        EmailDto emailDto = profileImp.getUserByEmail(emailName);
+        SessionValidation sessionValidation = authenticationImp.createSessionByDevice(emailDto.userId(), deviceId, deviceName, deviceType,
                 userAgent, ipAddress, location, true, false);
-        Long typeId = getTypeId(verificationType, emailResponse, sessionValidation);
+        Long typeId = getTypeId(verificationType, emailDto, sessionValidation);
         List<Verification> verifications = verificationRepository
                 .findBySessionIdAndVerificationTypeAndTypeIdAndExpiredAtAfterOrderByCreatedAtDesc(
-                        sessionValidation.getSessionId(), verificationType, typeId, Instant.now()
+                        sessionValidation.sessionId(), verificationType, typeId, Instant.now()
                 );
         if(!verifications.isEmpty()) {
             long timeWaited = Duration.between(verifications.getFirst().getCreatedAt(),
@@ -69,14 +69,14 @@ public class VerificationService {
         int verificationCanceled = verificationRepository.cancelVerificationPending(typeId, Instant.now());
         log.info("{} verification canceled by user", verificationCanceled);
         Verification verification = Verification.builder()
-                .sessionId(sessionValidation.getSessionId())
+                .sessionId(sessionValidation.sessionId())
                 .verificationType(verificationType)
                 .typeId(typeId)
                 .verificationStatus(VerificationStatus.PENDING)
                 .expiredAt(Instant.now().plus(expireAfterHour, ChronoUnit.HOURS))
                 .build();
         verificationRepository.save(verification);
-        String fullName = profileImp.getFullName(emailResponse.getUserId());
+        String fullName = profileImp.getFullName(emailDto.userId());
         VerificationSendEmailRegisteredEvent event = new VerificationSendEmailRegisteredEvent(emailName,
                 responseTranslationAdvice.getString(VerificationMessage.SECURITY),
                 fullName != null ? fullName : emailName,
@@ -86,25 +86,25 @@ public class VerificationService {
                 expireAfterHour + " " + responseTranslationAdvice.getString(GlobalMessage.Time.HOUR)
         );
         eventPublisher.publishEvent(event);
-        return sessionValidation.getDeviceId();
+        return sessionValidation.deviceId();
     }
 
-    private Long getTypeId(VerificationType verificationType, EmailResponse emailResponse, SessionValidation sessionValidation) {
+    private Long getTypeId(VerificationType verificationType, EmailDto emailDto, SessionValidation sessionValidation) {
         Long typeId;
         switch(verificationType) {
             case VERIFICATION_EMAIL -> {
-                if(emailResponse.getVerified()) {
+                if(emailDto.verified()) {
                     throw new ConflictException(VerificationMessage.Verification.EMAIL_VERIFIED);
                 }
-                typeId = emailResponse.getEmailId();
+                typeId = emailDto.emailId();
             }
             case VERIFICATION_DEVICE -> {
-                if(sessionValidation.isValidated()) {
+                if(sessionValidation.validated()) {
                     throw new ConflictException(VerificationMessage.Session.VERIFIED);
                 }
-                typeId = sessionValidation.getSessionId();
+                typeId = sessionValidation.sessionId();
             }
-            case VERIFICATION_RESET_PASSWORD -> typeId = sessionValidation.getUserId();
+            case VERIFICATION_RESET_PASSWORD -> typeId = sessionValidation.userId();
             default -> typeId = null;
         }
         return typeId;
@@ -155,7 +155,7 @@ public class VerificationService {
     @Transactional
     public Response<Void> verify(VerificationRequest verificationRequest) {
         Verification verification = verificationRepository
-                .findById(verificationRequest.getVerificationId())
+                .findById(verificationRequest.verificationId())
                 .orElseThrow(() -> new EntityNotFoundException(VerificationMessage.Verification.NOT_EXISTS));
         if(verification.getVerificationStatus() == VerificationStatus.USED){
             throw new ConflictException(VerificationMessage.Verification.USED);
@@ -180,10 +180,10 @@ public class VerificationService {
             case VERIFICATION_DEVICE -> authenticationImp.updateValidatedSession(verification.getSessionId(),
                     true);
             case VERIFICATION_RESET_PASSWORD -> {
-                if(!verificationRequest.getNewPassword().matches(AuthRegexValidation.PASSWORD)){
+                if(!verificationRequest.newPassword().matches(AuthRegexValidation.PASSWORD)){
                     throw new UnprocessableException(VerificationMessage.Validation.PASSWORD_INVALID);
                 }
-                userImp.updatePasswordHash(userId, verificationRequest.getNewPassword());
+                userImp.updatePasswordHash(userId, verificationRequest.newPassword());
             }
             default -> {
                 log.error("Invalid verification type {}", verification.getVerificationType());

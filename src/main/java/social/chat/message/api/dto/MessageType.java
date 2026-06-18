@@ -6,6 +6,7 @@ import org.springframework.modulith.NamedInterface;
 @NamedInterface
 public enum MessageType {
     TEXT,
+    SMAIL,
     IMAGE,
     VIDEO,
     AUDIO,

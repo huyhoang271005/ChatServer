@@ -1,6 +1,5 @@
 package social.chat.authorization.internal;
 
-import jakarta.annotation.PostConstruct;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -9,16 +8,17 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.authorization.internal.enums.PermissionName;
-import social.chat.authorization.internal.enums.RoleDefault;
 import social.chat.authorization.internal.entity.Permission;
 import social.chat.authorization.internal.entity.Role;
-import social.chat.authorization.internal.entity.RolePermission;
+import social.chat.authorization.internal.enums.PermissionName;
+import social.chat.authorization.internal.enums.RoleDefault;
 import social.chat.authorization.internal.repository.PermissionRepository;
 import social.chat.authorization.internal.repository.RolePermissionRepository;
 import social.chat.authorization.internal.repository.RoleRepository;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -78,7 +78,7 @@ public class RolePermissionInit implements ApplicationRunner {
 
     @Transactional
     @Override
-    public void run(ApplicationArguments args) throws Exception {
+    public void run(ApplicationArguments args) {
         init();
     }
 }

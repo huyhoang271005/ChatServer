@@ -1,7 +1,6 @@
 package social.chat.conversation.internal;
 
-import org.mapstruct.Mapper;
-import org.mapstruct.MappingTarget;
+import org.mapstruct.*;
 import social.chat.conversation.api.dto.ConversationDto;
 import social.chat.conversation.internal.entity.Conversation;
 

@@ -20,6 +20,15 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
             """)
     List<Role> findAllRolesWithPermissions();
 
+    @Query("""
+            select r
+            from Role r
+            left join fetch r.rolePermissions rp
+            left join fetch rp.permission
+            where r.roleId = :roleId
+            """)
+    Optional<Role> findRoleWithPermissions(Long roleId);
+
     @Modifying(clearAutomatically = true)
     @Query("""
             delete

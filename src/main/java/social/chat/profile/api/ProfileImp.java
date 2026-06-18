@@ -1,10 +1,8 @@
 package social.chat.profile.api;
 
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
 import org.springframework.modulith.NamedInterface;
-import social.chat.profile.api.dto.EmailResponse;
-import social.chat.profile.api.dto.ProfileShortDto;
+import social.chat.profile.api.dto.EmailDto;
+import social.chat.profile.api.dto.ProfileInfo;
 
 import java.util.List;
 
@@ -14,10 +12,10 @@ public interface ProfileImp {
     boolean existsProfileByUserId(Long userId);
     void createEmail(String email, Long userId, boolean isVerified);
     String getFullName(Long userId);
-    EmailResponse getUserByEmail(String emailName);
+    EmailDto getUserByEmail(String emailName);
     void verifiedEmail(Long emailId);
     Long getUserIdByEmail(String emailName);
     boolean getUpdated(Long userId);
     void deleteEmailAndProfileByUserIds(List<Long> userIds);
-    List<ProfileShortDto> getShortProfiles(List<Long> userIds);
+    List<ProfileInfo> getShortProfiles(List<Long> userIds);
 }

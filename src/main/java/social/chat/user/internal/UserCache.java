@@ -4,7 +4,6 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -20,7 +19,7 @@ import java.time.Instant;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserCache {
     UserRepository userRepository;
-    CacheManager cacheManager;
+    UserMapper userMapper;
 
     @Transactional(readOnly = true)
     @Cacheable(value = "users", key = "#userId")
@@ -28,11 +27,7 @@ public class UserCache {
         User user = userRepository.findById(userId).orElse(null);
         if(user != null) {
             log.info("Cached user for user {}", userId);
-            return UserCacheDto.builder()
-                    .roleId(user.getRoleId())
-                    .accountStatus(user.getAccountStatus())
-                    .expireAt(user.getExpireAt())
-                    .build();
+            return userMapper.toUserCacheDto(user);
         }
         return null;
     }
@@ -57,11 +52,7 @@ public class UserCache {
                     });
             log.info("Db update user for user {}", userId);
         }
-        return UserCacheDto.builder()
-                .roleId(roleId)
-                .accountStatus(accountStatus)
-                .expireAt(expireAt)
-                .build();
+        return new UserCacheDto(roleId, accountStatus, expireAt);
     }
 
     @CacheEvict(cacheNames = "users", key = "#userId")

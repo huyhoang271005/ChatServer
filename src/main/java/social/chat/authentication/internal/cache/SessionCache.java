@@ -37,6 +37,7 @@ public class SessionCache {
                 ));
     }
 
+    @Transactional
     @CachePut(cacheNames = "sessions", key = "#sessionId")
     public SessionCacheDto putCacheSession(Long sessionId, boolean revoked, String oldIpAddress,
                                            String newIpAddress, String location, boolean saveDb) {
@@ -48,10 +49,7 @@ public class SessionCache {
             session.setRevoked(revoked);
             session.setLocation(location);
         }
-        return  SessionCacheDto.builder()
-                .revoked(revoked)
-                .ipAddress(newIpAddress)
-                .build();
+        return new SessionCacheDto(revoked, newIpAddress);
     }
 
     @CacheEvict(cacheNames = "sessions", key = "#sessionId")

@@ -12,7 +12,7 @@ import social.chat.conversation.api.dto.UserConversationDto;
 import social.chat.conversation.internal.entity.Conversation;
 import social.chat.conversation.internal.repository.ConversationRepository;
 import social.chat.profile.api.ProfileImp;
-import social.chat.profile.api.dto.ProfileShortDto;
+import social.chat.profile.api.dto.ProfileInfo;
 import social.chat.shared.common.ApplicationProperties;
 import social.chat.shared.common.GlobalMessage;
 import social.chat.shared.dto.Response;
@@ -55,11 +55,11 @@ public class ConversationService {
         conversation.addUserConversations(userIds, ConversationRole.MEMBER);
         conversationDto = conversationMapper.toConversationDto(conversationRepository.save(conversation));
         if(!conversationDto.isGroup()){
-            List<ProfileShortDto> profileShortDtos = profileImp.getShortProfiles(List.of(myId));
+            List<ProfileInfo> profileShortDtos = profileImp.getShortProfiles(List.of(myId));
             if(!profileShortDtos.isEmpty()){
-                ProfileShortDto profileShortDto = profileShortDtos.getFirst();
-                conversationDto.setConversationAvatar(profileShortDto.getAvatarUrl());
-                conversationDto.setTitle(profileShortDto.getFullName());
+                ProfileInfo profileShortDto = profileShortDtos.getFirst();
+                conversationDto.setConversationAvatar(profileShortDto.avatarUrl());
+                conversationDto.setTitle(profileShortDto.fullName());
             }
 
         }
@@ -67,10 +67,7 @@ public class ConversationService {
                 .type(WebsocketEventType.NEW_CONVERSATION)
                 .conversation(conversationDto)
                 .build();
-        websocketService.sendMessage(conversationDto.getUserConversations()
-                .stream()
-                .map(UserConversationDto::getUserId)
-                .toList(), myId, payload);
+        websocketService.sendMessage(myId, payload);
         return Response.success(
                 GlobalMessage.Success.CREATED,
                 ConversationDto.builder()
@@ -81,16 +78,17 @@ public class ConversationService {
 
     @Transactional(readOnly = true)
     public Response<ResponseList<ConversationDto>> getConversation(Long myId, Long lastId, Pageable pageable){
-        Slice<Long> conversationIdSlice = conversationRepository.findConversationIdsByUserId(myId,  lastId,pageable);
+        Slice<Long> conversationIdSlice = conversationRepository.findConversationIdsByUserId(myId, lastId, pageable);
         List<ConversationDto> conversationDtos = conversationCache.getConversations(conversationIdSlice.getContent());
         List<Long> userIdsPrivateConversations = conversationDtos.stream()
                 .filter(conversationDto -> !conversationDto.isGroup())
                 .flatMap(conversationDto -> conversationDto.getUserConversations().stream()
                         .map(UserConversationDto::getUserId))
+                .distinct()
                 .toList();
-        Map<Long, ProfileShortDto> profileShortDtoMap = profileImp.getShortProfiles(userIdsPrivateConversations)
+        Map<Long, ProfileInfo> profileShortDtoMap = profileImp.getShortProfiles(userIdsPrivateConversations)
                 .stream()
-                .collect(Collectors.toMap(ProfileShortDto::getUserId, Function.identity()));
+                .collect(Collectors.toMap(ProfileInfo::userId, Function.identity()));
         conversationDtos.forEach(conversationDto -> {
             Integer unreadMessage = conversationDto.getUserConversations()
                     .stream()
@@ -99,6 +97,13 @@ public class ConversationService {
                     .map(UserConversationDto::getUnreadMessage)
                     .orElse(0);
             conversationDto.setUnreadMessage(unreadMessage);
+            conversationDto.getUserConversations()
+                    .forEach(userConversationDto -> {
+                        ProfileInfo profileInfo = profileShortDtoMap.get(userConversationDto.getUserId());
+                        userConversationDto.setFullName(profileInfo.fullName());
+                        userConversationDto.setAvatarUrl(profileInfo.avatarUrl());
+                        userConversationDto.setUsername(profileInfo.username());
+                    });
            if(!conversationDto.isGroup()){
                Long userId = conversationDto.getUserConversations()
                        .stream()
@@ -107,11 +112,11 @@ public class ConversationService {
                        .toList()
                        .getFirst()
                        .getUserId();
-               ProfileShortDto profileShortDto = profileShortDtoMap.get(userId);
-               String avatarUrl = profileShortDto.getAvatarUrl() != null ?  profileShortDto.getAvatarUrl() :
+               ProfileInfo profileShortDto = profileShortDtoMap.get(userId);
+               String avatarUrl = profileShortDto.avatarUrl() != null ?  profileShortDto.avatarUrl() :
                        applicationProperties.getUnknowUserUrl();
                conversationDto.setConversationAvatar(avatarUrl);
-               conversationDto.setTitle(profileShortDto.getFullName());
+               conversationDto.setTitle(profileShortDto.fullName());
            }
         });
         return Response.success(

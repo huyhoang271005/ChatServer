@@ -2,15 +2,17 @@ package social.chat.profile.api.dto;
 
 import social.chat.profile.internal.entity.Profile;
 
+import java.io.Serializable;
+
 /**
  * Projection for {@link Profile}
  */
-public interface ProfileInfo {
-    Long getUserId();
+public record ProfileInfo(
+        Long userId,
 
-    String getFullName();
+        String fullName,
 
-    String getUsername();
+        String username,
 
-    String getAvatarUrl();
-}
+        String avatarUrl
+) implements Serializable {}

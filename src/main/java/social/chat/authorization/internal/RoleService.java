@@ -13,7 +13,6 @@ import social.chat.authorization.api.events.AuthorizationUpdateRoleToUserRegiste
 import social.chat.authorization.internal.entity.Permission;
 import social.chat.authorization.internal.entity.Role;
 import social.chat.authorization.internal.enums.RoleDefault;
-import social.chat.authorization.internal.mapper.PermissionMapper;
 import social.chat.authorization.internal.mapper.RoleMapper;
 import social.chat.authorization.internal.repository.PermissionRepository;
 import social.chat.authorization.internal.repository.RolePermissionRepository;
@@ -37,67 +36,48 @@ public class RoleService {
     RolePermissionRepository rolePermissionRepository;
     RoleCache roleCache;
     RoleMapper roleMapper;
-    PermissionMapper permissionMapper;
     ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional
     public Response<RolePermissionDto> createRole(RolePermissionDto rolePermissionDto) {
-        if(roleRepository.existsByRoleName(rolePermissionDto.getRoleName())) {
+        if(roleRepository.existsByRoleName(rolePermissionDto.roleName())) {
             throw new ConflictException(AuthorizationMessage.Role.EXISTS);
         }
         Role role = roleMapper.toRole(rolePermissionDto);
-        List<Permission> permissions = permissionRepository.findAllById(rolePermissionDto.getPermissions()
+        List<Permission> permissions = permissionRepository.findAllById(rolePermissionDto.permissions()
                 .stream()
-                .map(PermissionDto::getPermissionId)
+                .map(PermissionDto::permissionId)
                 .toList());
         role.addRolePermission(permissions);
         roleRepository.save(role);
-
-        List<PermissionDto> permissionDtos = role.getRolePermissions().stream()
-                .map(rolePermission -> {
-                    PermissionDto permissionDto = permissionMapper.toPermissionDto(rolePermission.getPermission());
-                    permissionDto.setRolePermissionId(rolePermission.getRolePermissionId());
-                    return permissionDto;
-                })
-                .toList();
-        RolePermissionDto rolePermissionDto1 = roleMapper.toRolePermissionDto(role);
-        rolePermissionDto1.setPermissions(permissionDtos);
         return Response.success(
                 GlobalMessage.Success.CREATED,
-                rolePermissionDto1
+                roleMapper.toRolePermissionDto(role)
         );
     }
 
     @Transactional
     public Response<RolePermissionDto> updateRole(RolePermissionDto rolePermissionDto) {
-        Role role = roleRepository.findById(rolePermissionDto.getRoleId())
+        Role role = roleRepository.findById(rolePermissionDto.roleId())
                 .orElseThrow(() -> new EntityNotFoundException(AuthorizationMessage.Role.NOT_EXISTS));
-        if(rolePermissionDto.getRoleName().equals(RoleDefault.ADMIN.name()) ||
-            rolePermissionDto.getRoleName().equals(RoleDefault.USER.name())) {
+        if(rolePermissionDto.roleName().equals(RoleDefault.ADMIN.name()) ||
+            rolePermissionDto.roleName().equals(RoleDefault.USER.name())) {
             throw new ConflictException(AuthorizationMessage.Role.DEFAULT_CAN_UPDATE, role.getRoleName());
         }
         if(role.getDeletedAt() != null) {
             throw new ConflictException(AuthorizationMessage.Role.DELETED);
         }
-        List<Permission> permissions = permissionRepository.findAllById(rolePermissionDto.getPermissions()
+        List<Permission> permissions = permissionRepository.findAllById(rolePermissionDto.permissions()
                 .stream()
-                .map(PermissionDto::getPermissionId)
+                .map(PermissionDto::permissionId)
                 .toList());
         rolePermissionRepository.deleteByRole(role);
         role.addRolePermission(permissions);
         roleRepository.save(role);
         roleCache.deleteRolePermissionCache(role.getRoleId());
-        RolePermissionDto rolePermissionDto1 = roleMapper.toRolePermissionDto(role);
-        rolePermissionDto1.setPermissions(role.getRolePermissions().stream()
-                .map(rolePermission -> {
-                    PermissionDto permissionDto = permissionMapper.toPermissionDto(rolePermission.getPermission());
-                    permissionDto.setRolePermissionId(rolePermission.getRolePermissionId());
-                    return permissionDto;
-                })
-                .toList());
         return Response.success(
                 GlobalMessage.Success.UPDATED,
-                rolePermissionDto1
+                roleMapper.toRolePermissionDto(role)
         );
     }
 
@@ -128,7 +108,7 @@ public class RoleService {
         return Response.success(
                 GlobalMessage.Success.GET,
                 permissions.stream()
-                        .map(permissionMapper::toPermissionDto)
+                        .map(roleMapper::toPermissionDto)
                         .toList()
         );
     }
@@ -137,18 +117,7 @@ public class RoleService {
     public Response<List<RolePermissionDto>> getAllRolePermissions() {
         List<Role> roles = roleRepository.findAllRolesWithPermissions();
         List<RolePermissionDto> rolePermissionDtos = roles.stream()
-                .map(role -> {
-                    RolePermissionDto rolePermissionDto = roleMapper.toRolePermissionDto(role);
-                    rolePermissionDto.setPermissions(role.getRolePermissions()
-                            .stream()
-                            .map(rolePermission -> {
-                                PermissionDto permissionDto = permissionMapper.toPermissionDto(rolePermission.getPermission());
-                                permissionDto.setRolePermissionId(rolePermission.getRolePermissionId());
-                                return permissionDto;
-                            })
-                            .toList());
-                    return rolePermissionDto;
-                })
+                .map(roleMapper::toRolePermissionDto)
                 .toList();
         return Response.success(
                 GlobalMessage.Success.GET,

@@ -30,32 +30,39 @@ public class ResponseTranslationAdvice implements ResponseBodyAdvice<Object> {
     public String getString(String messageKey, Object... args) {
         return messageSource.getMessage(messageKey, args, messageKey, LocaleContextHolder.getLocale());
     }
+
     @Override
     public boolean supports(@NonNull MethodParameter returnType,
                             @NonNull Class<? extends HttpMessageConverter<?>> converterType) {
-        return ResponseEntity.class.isAssignableFrom(returnType.getParameterType());
+        return ResponseEntity.class.isAssignableFrom(returnType.getParameterType())
+                || Response.class.isAssignableFrom(returnType.getParameterType());
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public @Nullable Object beforeBodyWrite(@Nullable Object body, @NonNull MethodParameter returnType,
                                             @NonNull MediaType selectedContentType,
                                             @NonNull Class<? extends HttpMessageConverter<?>> selectedConverterType,
                                             @NonNull ServerHttpRequest request,
                                             @NonNull ServerHttpResponse response) {
-        if (body instanceof Response<?> apiResponse) {
-            String currentMessage = apiResponse.getMessage();
+        if (body instanceof Response<?>(boolean success, String currentMessage, Object updatedData, Object[] args)) {
+            String translatedMessage = currentMessage;
 
             if (currentMessage != null && !currentMessage.isEmpty()) {
-                String translated = getString(currentMessage, apiResponse.getArgs());
-                apiResponse.setMessage(translated);
-                if(apiResponse.getData() != null && apiResponse.getData() instanceof List<?> list){
-                    List<?> updateList = list.stream()
-                            .map(o -> o instanceof String key ? getString(key) : o)
-                            .toList();
-                    ((Response<List<?>>) apiResponse).setData(updateList);
-                }
+                translatedMessage = getString(currentMessage, args);
             }
+
+            if (updatedData instanceof List<?> list) {
+                updatedData = list.stream()
+                        .map(o -> o instanceof String key ? getString(key) : o)
+                        .toList();
+            }
+
+            return new Response<>(
+                    success,
+                    translatedMessage,
+                    updatedData,
+                    args
+            );
         }
         return body;
     }

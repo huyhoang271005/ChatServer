@@ -12,6 +12,8 @@ import java.util.Optional;
 public interface TokenRepository extends JpaRepository<Token, Long> {
     Optional<Token> findBySessionAndTokenType(Session session, TokenType tokenType);
     Optional<Token> findByTokenValue(String tokenValue);
+    boolean existsBySession_SessionIdAndTokenType(Long sessionId, TokenType tokenType);
+    Integer deleteBySession_SessionIdAndTokenType(Long sessionId, TokenType tokenType);
 
     @Query("""
             select t.tokenValue
@@ -19,6 +21,7 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
             join s.tokens t
             where s.userId in :userIds
             and t.tokenType = TokenType.FCM_TOKEN
+            and t.tokenValue is not null
             """)
     List<String> findFcmTokeValueByUserIds(List<Long> userIds);
 }

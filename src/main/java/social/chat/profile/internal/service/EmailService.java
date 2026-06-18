@@ -40,7 +40,7 @@ public class EmailService {
     @Transactional
     public Response<EmailDto> createEmail(EmailDto emailDto, Long userId) {
         Email email = emailRepository.save(Email.builder()
-                .emailName(emailDto.getEmailName())
+                .emailName(emailDto.emailName())
                 .userId(userId)
                 .verified(false)
                 .build());

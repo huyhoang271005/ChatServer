@@ -1,23 +1,12 @@
 package social.chat.authentication.api.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.*;
-import lombok.experimental.FieldDefaults;
-
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@Setter
-@Builder
-@FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class TokenDto {
-    Long userId;
-    Long deviceId;
-    Boolean verifiedEmail;
-    Boolean verifiedDevice;
-    String accessToken;
-    String refreshToken;
-    boolean hasProfile;
-    boolean updateProfile;
-}
+public record TokenDto (
+    Long userId,
+    Long deviceId,
+    Boolean verifiedEmail,
+    Boolean verifiedDevice,
+    String accessToken,
+    String refreshToken,
+    boolean hasProfile,
+    boolean updateProfile
+){}

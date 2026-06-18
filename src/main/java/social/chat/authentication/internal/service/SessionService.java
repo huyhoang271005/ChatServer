@@ -3,17 +3,22 @@ package social.chat.authentication.internal.service;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import social.chat.authentication.api.dto.FirebaseLoginRequest;
 import social.chat.authentication.api.dto.SessionDto;
 import social.chat.authentication.internal.AuthenticationMessage;
 import social.chat.authentication.internal.cache.SessionCache;
 import social.chat.authentication.internal.entity.Session;
+import social.chat.authentication.internal.entity.Token;
+import social.chat.authentication.internal.enums.TokenType;
 import social.chat.authentication.internal.mapper.SessionMapper;
 import social.chat.authentication.internal.repository.SessionRepository;
+import social.chat.authentication.internal.repository.TokenRepository;
 import social.chat.shared.common.GlobalMessage;
 import social.chat.shared.dto.Response;
 import social.chat.shared.dto.ResponseList;
@@ -21,8 +26,8 @@ import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.verification.api.events.VerificationDeleteBySessionIdsRegisteredEvent;
 
 import java.util.List;
-import java.util.Objects;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -31,14 +36,13 @@ public class SessionService {
     SessionMapper sessionMapper;
     SessionCache sessionCache;
     ApplicationEventPublisher applicationEventPublisher;
+    TokenRepository tokenRepository;
 
     @Transactional(readOnly = true)
     public Response<ResponseList<SessionDto>> getSessions(Long userId, Long lastId, Pageable pageable,
                                                           Long sessionId) {
         Slice<Session> sessions = sessionRepository.findByUserIdAndLastId(userId, lastId, pageable);
-        List<SessionDto> sessionDtos = sessionMapper.toSessionDto(sessions.getContent());
-        sessionDtos.forEach(sessionDto -> sessionDto
-                .setMySession(Objects.equals(sessionDto.getSessionId(), sessionId)));
+        List<SessionDto> sessionDtos = sessionMapper.toSessionDto(sessions.getContent(), sessionId);
         return Response.success(
                 GlobalMessage.Success.GET,
                 new ResponseList<>(

@@ -6,12 +6,13 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.profile.api.dto.ProfileShortDto;
+import social.chat.profile.api.dto.EmailDto;
+import social.chat.profile.api.dto.ProfileInfo;
 import social.chat.profile.internal.cache.ProfileCache;
+import social.chat.profile.internal.mapper.EmailMapper;
 import social.chat.shared.exception.ConflictException;
 import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.profile.api.ProfileImp;
-import social.chat.profile.api.dto.EmailResponse;
 import social.chat.profile.internal.ProfileMessage;
 import social.chat.profile.internal.entity.Email;
 import social.chat.profile.internal.entity.Profile;
@@ -30,6 +31,7 @@ public class ProfileLogicService implements ProfileImp {
     ProfileRepository profileRepository;
     UserImp userImp;
     ProfileCache profileCache;
+    EmailMapper emailMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -62,14 +64,10 @@ public class ProfileLogicService implements ProfileImp {
 
     @Override
     @Transactional(readOnly = true)
-    public EmailResponse getUserByEmail(String emailName) {
+    public EmailDto getUserByEmail(String emailName) {
         Email email = emailRepository.findByEmailName(emailName)
                 .orElseThrow(() -> new EntityNotFoundException(ProfileMessage.Email.NOT_EXITS));
-        return EmailResponse.builder()
-                .userId(email.getUserId())
-                .emailId(email.getEmailId())
-                .verified(email.getVerified())
-                .build();
+        return emailMapper.toEmailDto(email);
     }
 
     @Override
@@ -100,8 +98,8 @@ public class ProfileLogicService implements ProfileImp {
     @Transactional(readOnly = true)
     public boolean getUpdated(Long userId) {
         Profile profile = profileRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException(ProfileMessage.Profile.NOT_EXITS));
-        return profile.getUpdated();
+                .orElse(null);
+        return profile != null && profile.getUpdated();
     }
 
     @Override
@@ -113,7 +111,7 @@ public class ProfileLogicService implements ProfileImp {
 
     @Override
     @Transactional
-    public List<ProfileShortDto> getShortProfiles(List<Long> userIds) {
+    public List<ProfileInfo> getShortProfiles(List<Long> userIds) {
         return profileCache.getShortProfileByUserIds(userIds);
     }
 }

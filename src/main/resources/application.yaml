@@ -36,6 +36,10 @@ spring:
           private-key-location: classpath:privateKey.pem
           access-token-expire: ${JWT_ACCESS_TOKEN_EXPIRE}
           refresh-token-expire: ${JWT_REFRESH_TOKEN_EXPIRE}
+  jackson:
+    generator:
+      write-numbers-as-strings: true
+    default-property-inclusion: non_null
   mail:
     host: ${MAIL_HOST}
     port: 465

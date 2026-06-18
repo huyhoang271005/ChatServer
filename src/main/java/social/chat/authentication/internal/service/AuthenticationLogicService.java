@@ -18,9 +18,11 @@ import social.chat.authentication.internal.cache.SessionCache;
 import social.chat.authentication.internal.cronjob.AuthenticationCronjobProperties;
 import social.chat.authentication.internal.entity.Device;
 import social.chat.authentication.internal.entity.Session;
+import social.chat.authentication.internal.mapper.SessionMapper;
 import social.chat.authentication.internal.repository.DeviceRepository;
 import social.chat.authentication.internal.repository.SessionRepository;
 import social.chat.authentication.internal.repository.TokenRepository;
+import social.chat.profile.api.ProfileImp;
 import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.shared.exception.UnauthorizedException;
 import social.chat.shared.security.JwtService;
@@ -44,6 +46,8 @@ public class AuthenticationLogicService implements AuthenticationImp {
     JwtProperties jwtProperties;
     AuthenticationCronjobProperties authenticationCronjobProperties;
     TokenRepository tokenRepository;
+    SessionMapper sessionMapper;
+    private final ProfileImp profileImp;
 
     @Override
     @Transactional
@@ -67,25 +71,20 @@ public class AuthenticationLogicService implements AuthenticationImp {
                         .validated(validated)
                         .location(location)
                         .build()));
-        return SessionValidation.builder()
-                .sessionId(session.getSessionId())
-                .deviceId(device.getDeviceId())
-                .validated(session.getValidated())
-                .build();
+        return sessionMapper.toSessionValidation(session);
     }
 
     @Override
     public TokenDto generateToken(Long userId, Long deviceId, Instant timeExpired) {
         Device device = deviceRepository.findById(deviceId)
                 .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Session.NOT_EXISTS));
-        Long sessionId = sessionRepository.findByDeviceAndUserId(device, userId)
-                .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Session.NOT_EXISTS))
-                .getSessionId();
-        return TokenDto.builder()
-                .accessToken(jwtService.generateJwt(userId, sessionId, false, timeExpired))
-                .refreshToken(jwtService.generateJwt(userId, sessionId, true, timeExpired))
-                .hasProfile(true)
-                .build();
+        Session session = sessionRepository.findByDeviceAndUserId(device, userId)
+                .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Session.NOT_EXISTS));
+        Long sessionId = session.getSessionId();
+        return new TokenDto(userId, deviceId, null, session.getValidated(),
+                jwtService.generateJwt(userId, sessionId, false, timeExpired),
+                jwtService.generateJwt(userId, sessionId, true, timeExpired) ,
+                true, profileImp.getUpdated(userId));
     }
 
     @Override
@@ -130,13 +129,13 @@ public class AuthenticationLogicService implements AuthenticationImp {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public void checkSession(Long sessionId, String ipAddress, String location, boolean saveDb) {
         SessionCacheDto sessionCacheDto = sessionCache.getCacheSession(sessionId);
-        if(sessionCacheDto.isRevoked()){
+        if(sessionCacheDto.revoked()){
             throw new UnauthorizedException(AuthenticationMessage.Session.EXPIRED);
         }
-        sessionCache.putCacheSession(sessionId, false, sessionCacheDto.getIpAddress(),
+        sessionCache.putCacheSession(sessionId, false, sessionCacheDto.ipAddress(),
                 ipAddress, location, saveDb);
     }
 

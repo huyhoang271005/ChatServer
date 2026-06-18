@@ -36,10 +36,10 @@ public class ProfileController {
                                            @Valid @RequestBody FullNameRequest fullNameRequest,
                                            @CookieValue(name = GlobalParamName.Cookie.DEVICE_ID)
                                            Long deviceId) {
-        var response = profileService.createProfile(userId, fullNameRequest.getFullName(), deviceId);
+        var response = profileService.createProfile(userId, fullNameRequest.fullName(), deviceId);
         ResponseCookie cookie = authenticationImp.getResponseCookie(GlobalParamName.Cookie.REFRESH_TOKEN,
-                response.getData().getRefreshToken(), Duration.ofSeconds(jwtProperties.getRefreshTokenExpire()));
-        response.getData().setRefreshToken(null);
+                response.data().refreshToken(), Duration.ofSeconds(jwtProperties.getRefreshTokenExpire()));
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(response);

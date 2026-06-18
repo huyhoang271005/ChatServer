@@ -26,6 +26,7 @@ public class ConversationDto {
     MessageType lastMessageType;
     Instant lastMessageTime;
     Long lastMessageId;
+    boolean lastMessageRevoked;
     boolean group;
     Long createdBy;
     Instant createdAt;

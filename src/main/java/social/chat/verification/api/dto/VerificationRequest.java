@@ -1,24 +1,14 @@
 package social.chat.verification.api.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.Pattern;
-import lombok.*;
-import lombok.experimental.FieldDefaults;
 import org.springframework.modulith.NamedInterface;
 import social.chat.authentication.api.dto.AuthRegexValidation;
 import social.chat.verification.internal.VerificationMessage;
 
 @NamedInterface
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@Setter
-@Builder
-@FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class VerificationRequest {
-    Long verificationId;
-    Long deviceId;
+public record VerificationRequest (
+    Long verificationId,
+    Long deviceId,
     @Pattern(regexp = AuthRegexValidation.PASSWORD, message = VerificationMessage.Validation.PASSWORD_INVALID)
-    String newPassword;
-}
+    String newPassword
+){}

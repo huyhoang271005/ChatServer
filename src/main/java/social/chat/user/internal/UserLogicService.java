@@ -77,23 +77,29 @@ public class UserLogicService implements UserImp {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public Long getRoleIdAndCheckAccountStatus(Long userId) {
         UserCacheDto userCacheDto = userCache.getUserCache(userId);
-        if(userCacheDto.getAccountStatus() != AccountStatus.ACTIVE &&
-                userCacheDto.getAccountStatus() != AccountStatus.PENDING_PROFILE) {
-            switch (userCacheDto.getAccountStatus()) {
+        if(userCacheDto.accountStatus() != AccountStatus.ACTIVE &&
+                userCacheDto.accountStatus() != AccountStatus.PENDING_PROFILE) {
+            switch (userCacheDto.accountStatus()) {
                 case LOCKED ->
                         throw new ConflictException(UserMessage.Account.LOCKED);
                 case INACTIVE ->
                         throw new ConflictException(UserMessage.Account.INACTIVE);
-                case BANNED ->
-                    throw new ConflictException(UserMessage.Account.BANNED, userCacheDto.getExpireAt());
+                case BANNED -> {
+                    if(userCacheDto.expireAt().isBefore(Instant.now())) {
+                        userCache.updateUserCache(userId, userCacheDto.roleId(),
+                                AccountStatus.ACTIVE, null, true);
+                    } else {
+                        throw new ConflictException(UserMessage.Account.BANNED, userCacheDto.expireAt());
+                    }
+                }
                 default ->
                         throw new ConflictException(UserMessage.Account.INVALID);
             }
         }
-        return userCacheDto.getRoleId();
+        return userCacheDto.roleId();
     }
 
     @Override
@@ -148,11 +154,11 @@ public class UserLogicService implements UserImp {
     public void unbannedAccountCronjob() {
         List<UserInfo> userInfos = userRepository.findUserIdsNeedUnbanned(Instant.now());
         List<Long> userIds = userInfos.stream()
-                .map(UserInfo::getUserId)
+                .map(UserInfo::userId)
                 .toList();
         int accountUnbanned = userRepository.unbannedByUserIds(userIds);
         log.info("{} account unbanned", accountUnbanned);
-        userInfos.forEach(userInfo -> userCache.updateUserCache(userInfo.getUserId(), userInfo.getRoleId(),
+        userInfos.forEach(userInfo -> userCache.updateUserCache(userInfo.userId(), userInfo.roleId(),
                 AccountStatus.ACTIVE, null, false));
     }
 

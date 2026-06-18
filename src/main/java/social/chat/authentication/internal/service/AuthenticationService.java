@@ -12,22 +12,25 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.dto.FirebaseLoginRequest;
+import social.chat.authentication.api.dto.LoginRequest;
 import social.chat.authentication.api.dto.SessionValidation;
 import social.chat.authentication.api.dto.TokenDto;
+import social.chat.authentication.internal.AuthenticationMessage;
+import social.chat.authentication.internal.entity.Session;
+import social.chat.authentication.internal.entity.Token;
+import social.chat.authentication.internal.enums.TokenType;
+import social.chat.authentication.internal.repository.DeviceRepository;
+import social.chat.authentication.internal.repository.SessionRepository;
+import social.chat.authentication.internal.repository.TokenRepository;
+import social.chat.profile.api.ProfileImp;
+import social.chat.profile.api.dto.EmailDto;
+import social.chat.shared.common.GlobalMessage;
 import social.chat.shared.common.GlobalParamName;
+import social.chat.shared.dto.Response;
 import social.chat.shared.exception.ConflictException;
-import social.chat.authentication.api.dto.LoginRequest;
-import social.chat.authentication.internal.entity.*;
+import social.chat.shared.exception.UnauthorizedException;
 import social.chat.shared.security.JwtService;
 import social.chat.user.api.UserImp;
-import social.chat.authentication.internal.enums.TokenType;
-import social.chat.authentication.internal.AuthenticationMessage;
-import social.chat.authentication.internal.repository.*;
-import social.chat.shared.common.GlobalMessage;
-import social.chat.shared.dto.Response;
-import social.chat.shared.exception.UnauthorizedException;
-import social.chat.profile.api.ProfileImp;
-import social.chat.profile.api.dto.EmailResponse;
 
 import java.time.Instant;
 import java.util.List;
@@ -47,12 +50,18 @@ public class AuthenticationService {
     UserImp userImp;
     AuthenticationImp authenticationImp;
 
-    private void createToken(Long deviceId, Long userId, String fcmToken, TokenDto tokenDto, Instant timeExpired) {
-        Optional.ofNullable(deviceId)
+    @Transactional
+    protected TokenDto createToken(Long deviceId, Long userId, String fcmToken, boolean verifiedEmail, Instant timeExpired) {
+        boolean hasProfile = profileImp.existsProfileByUserId(userId);
+        boolean updateProfile = profileImp.getUpdated(userId);
+        return Optional.ofNullable(deviceId)
                 .flatMap(deviceRepository::findById)
                 .flatMap(device -> sessionRepository.findByDeviceAndUserId(device, userId))
-                .ifPresent(session -> {
-                    String refreshToken = jwtService.generateJwt(userId, session.getSessionId(), true, timeExpired);
+                .map(session -> {
+                    boolean verifiedDevice = session.getValidated();
+                    String accessToken;
+                    String refreshToken;
+                    refreshToken = jwtService.generateJwt(userId, session.getSessionId(), true, timeExpired);
                     log.info("Generated refresh token");
                     Token tokenJwt = tokenRepository.findBySessionAndTokenType(session, TokenType.REFRESH_TOKEN)
                             .orElseGet(() -> Token.builder()
@@ -71,29 +80,23 @@ public class AuthenticationService {
                     tokenRepository.saveAll(List.of(tokenJwt, tokenFcm));
                     session.setLastLogin(Instant.now());
                     session.setRevoked(false);
-                    tokenDto.setAccessToken(jwtService.generateJwt(userId, session.getSessionId(), false, timeExpired));
+                    accessToken = jwtService.generateJwt(userId, session.getSessionId(), false, timeExpired);
                     log.info("Generated access token");
-                    tokenDto.setRefreshToken(refreshToken);
-                    tokenDto.setVerifiedDevice(session.getValidated());
-                });
+                    return new TokenDto(userId, deviceId, verifiedEmail, verifiedDevice, accessToken, refreshToken,
+                            hasProfile, updateProfile);
+                })
+                .orElse(new TokenDto(userId, deviceId, verifiedEmail, false, null, null,
+                        hasProfile, updateProfile));
     }
 
     @Transactional
     public Response<TokenDto> login(LoginRequest loginRequest, Long deviceId) {
-        EmailResponse emailResponse = profileImp.getUserByEmail(loginRequest.getEmailName());
-        Long userId = emailResponse.getUserId();
-        boolean hasProfile = profileImp.existsProfileByUserId(userId);
-        if(!userImp.checkPassword(userId, loginRequest.getPassword())) {
+        EmailDto emailDto = profileImp.getUserByEmail(loginRequest.emailName());
+        Long userId = emailDto.userId();
+        if(!userImp.checkPassword(userId, loginRequest.password())) {
             throw new ConflictException(AuthenticationMessage.Validation.PASSWORD_INCORRECT);
         }
-        TokenDto tokenDto = TokenDto.builder()
-                .userId(userId)
-                .hasProfile(hasProfile)
-                .verifiedEmail(emailResponse.getVerified())
-                .verifiedDevice(false)
-                .updateProfile(profileImp.getUpdated(userId))
-                .build();
-        createToken(deviceId, userId, loginRequest.getFcmToken(), tokenDto, null);
+        TokenDto tokenDto = createToken(deviceId, userId, loginRequest.fcmToken(), emailDto.verified(), null);
         return Response.success(
                 "Login success",
                 tokenDto
@@ -116,8 +119,7 @@ public class AuthenticationService {
         Long userId = Long.parseLong(jwt.getSubject());
         userImp.getRoleIdAndCheckAccountStatus(userId);
         authenticationImp.checkSession(jwt.getClaim(GlobalParamName.Jwt.SESSION_ID), ipAddress, location, true);
-        TokenDto tokenDto = new TokenDto();
-        createToken(deviceId, userId, null, tokenDto, jwt.getExpiresAt());
+        TokenDto tokenDto = createToken(deviceId, userId, null, true, jwt.getExpiresAt());
         return Response.success(
                 GlobalMessage.Success.CREATED,
                 tokenDto
@@ -129,7 +131,8 @@ public class AuthenticationService {
                                           String deviceName, String deviceType, String userAgent,
                                           String ipAddress, String location) {
         try {
-            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(firebaseLoginRequest.getFirebaseToken());
+            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(firebaseLoginRequest
+                    .firebaseToken());
             String email = decodedToken.getEmail();
             if(email == null || email.isEmpty()) {
                 throw new ConflictException(AuthenticationMessage.Oauth2.NOT_FOUND_EMAIL);
@@ -137,15 +140,7 @@ public class AuthenticationService {
             Long userId = profileImp.getUserIdByEmail(email);
             SessionValidation sessionValidation = authenticationImp.createSessionByDevice(userId, deviceId, deviceName, deviceType, userAgent,
                     ipAddress, location, true, true);
-            TokenDto tokenDto = TokenDto.builder()
-                    .userId(userId)
-                    .hasProfile(profileImp.existsProfileByUserId(userId))
-                    .updateProfile(profileImp.getUpdated(userId))
-                    .verifiedEmail(true)
-                    .verifiedDevice(true)
-                    .deviceId(sessionValidation.getDeviceId())
-                    .build();
-            createToken(deviceId, userId, firebaseLoginRequest.getFcmToken(), tokenDto, null);
+            TokenDto tokenDto = createToken(sessionValidation.deviceId(), userId, firebaseLoginRequest.fcmToken(), true, null);
             return Response.success(
                     "Login Success",
                     tokenDto

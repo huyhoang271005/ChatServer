@@ -10,7 +10,6 @@ import social.chat.conversation.api.ConversationImp;
 import social.chat.conversation.api.dto.ConversationDto;
 import social.chat.message.api.MessageImp;
 import social.chat.message.api.dto.MessageDto;
-import social.chat.profile.api.ProfileImp;
 
 import java.util.List;
 
@@ -21,7 +20,6 @@ import java.util.List;
 public class MessageListenedEvent {
     ConversationImp conversationImp;
     MessageImp messageImp;
-    ProfileImp profileImp;
 
     @ApplicationModuleListener
     public void saveMessage(RegisterSaveMessageEvent event){
@@ -29,18 +27,6 @@ public class MessageListenedEvent {
         messageImp.saveMessage(messageDto);
         ConversationDto conversationDto = conversationImp.getConversations(List.of(messageDto
                 .getConversationId())).getFirst();
-        conversationDto.setLastMessageId(messageDto.getMessageId());
-        conversationDto.setLastMessageText(messageDto.getText());
-        conversationDto.setLastMessageType(messageDto.getType());
-        conversationDto.setLastSenderId(messageDto.getSenderId());
-        conversationDto.setLastMessageTime(messageDto.getCreatedAt());
-        conversationDto.setTitle(event.title());
-        conversationDto.getUserConversations()
-                .stream()
-                .filter(userConversationDto -> !userConversationDto
-                        .getUserId().equals(messageDto.getSenderId()))
-                .forEach(userConversationDto -> userConversationDto
-                        .setUnreadMessage(userConversationDto.getUnreadMessage() + 1));
         conversationImp.putConversation(conversationDto, true);
     }
 }

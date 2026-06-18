@@ -16,4 +16,8 @@ public final class AuthenticationMessage {
     public static final class Oauth2 {
         public static final String NOT_FOUND_EMAIL = "oauth2.email.not-found";
     }
+
+    public static final class Notification {
+        public static final String NEED_ENABLE = "notification.need-enable";
+    }
 }

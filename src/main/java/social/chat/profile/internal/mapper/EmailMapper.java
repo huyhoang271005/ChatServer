@@ -7,5 +7,4 @@ import social.chat.profile.internal.entity.Email;
 @Mapper(componentModel = "spring")
 public interface EmailMapper {
     EmailDto toEmailDto(Email email);
-    Email toEmail(EmailDto emailDto);
 }

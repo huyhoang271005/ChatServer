@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageDeliveryException;
-import org.springframework.messaging.handler.invocation.HandlerMethodArgumentResolver;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -17,6 +16,7 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.modulith.NamedInterface;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,7 +28,6 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 import social.chat.shared.security.CustomJwtAuthenticationConverter;
 
 import java.security.Principal;
-import java.util.List;
 
 @NamedInterface
 @Slf4j
@@ -50,7 +49,13 @@ public class WebsocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(@NonNull MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker(websocketProperties.getBrokerPaths().toArray(new String[0]));
+        ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
+        taskScheduler.setPoolSize(1);
+        taskScheduler.setThreadNamePrefix("ws-heartbeat-thread-");
+        taskScheduler.initialize();
+        registry.enableSimpleBroker(websocketProperties.getBrokerPaths().toArray(new String[0]))
+                .setHeartbeatValue(new long[]{10000, 10000})
+                .setTaskScheduler(taskScheduler);
         registry.setApplicationDestinationPrefixes(websocketProperties
                 .getAppPrefixes().toArray(new String[0]));
     }

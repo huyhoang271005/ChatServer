@@ -26,6 +26,17 @@ public class VerificationController {
     VerificationService verificationService;
     AuthenticationImp authenticationImp;
 
+    private ResponseEntity<Response<?>> returnCookie(Response<?> response) {
+        var cookie = authenticationImp.getResponseCookie(GlobalParamName.Cookie.DEVICE_ID,
+                String.valueOf(response.data()),
+                Duration.ofDays(3650));
+        response = new Response<>(response.success(), response.message(), null);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(response);
+    }
+
     @PostMapping("send-verification-email")
     public ResponseEntity<Response<?>> sendVerificationEmail(@Valid @RequestBody EmailRequest emailRequest,
                                                              @CookieValue(name = GlobalParamName.Cookie.DEVICE_ID,
@@ -33,20 +44,13 @@ public class VerificationController {
                                                              Long deviceId,
                                                              @Header(name = HttpHeaders.USER_AGENT) String userAgent,
                                                              HttpServletRequest request) {
-        var response = verificationService.sendVerificationEmail(emailRequest.getEmailName(),
+        var response = verificationService.sendVerificationEmail(emailRequest.emailName(),
                 deviceId, String.valueOf(request.getAttribute(GlobalParamName.Attribute.DEVICE_NAME)),
                 String.valueOf(request.getAttribute(GlobalParamName.Attribute.DEVICE_TYPE)),
                 userAgent,
                 String.valueOf(request.getAttribute(GlobalParamName.Attribute.IP_ADDRESS)),
                 String.valueOf(request.getAttribute(GlobalParamName.Attribute.LOCATION)));
-        var cookie = authenticationImp.getResponseCookie(GlobalParamName.Cookie.DEVICE_ID,
-                String.valueOf(response.getData()),
-                Duration.ofDays(3650));
-        response.setData(null);
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body(response);
+        return returnCookie(response);
     }
 
     @PostMapping("send-verification-reset-password")
@@ -57,21 +61,14 @@ public class VerificationController {
                                                                      @Header(name = HttpHeaders.USER_AGENT)
                                                                          String userAgent,
                                                                      HttpServletRequest request) {
-        var response = verificationService.sendVerificationChangePassword(emailRequest.getEmailName(),
+        var response = verificationService.sendVerificationChangePassword(emailRequest.emailName(),
                 deviceId,
                 String.valueOf(request.getAttribute(GlobalParamName.Attribute.DEVICE_NAME)),
                 String.valueOf(request.getAttribute(GlobalParamName.Attribute.DEVICE_TYPE)),
                 userAgent,
                 String.valueOf(request.getAttribute(GlobalParamName.Attribute.IP_ADDRESS)),
                 String.valueOf(request.getAttribute(GlobalParamName.Attribute.LOCATION)));
-        var cookie = authenticationImp.getResponseCookie(GlobalParamName.Cookie.DEVICE_ID,
-                String.valueOf(response.getData()),
-                Duration.ofDays(3650));
-        response.setData(null);
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body(response);
+       return returnCookie(response);
     }
 
     @PostMapping("send-verification-device")
@@ -82,20 +79,13 @@ public class VerificationController {
                                                               @Header(name = HttpHeaders.USER_AGENT)
                                                                   String userAgent,
                                                               HttpServletRequest request) {
-        var response = verificationService.sendVerificationDevice(emailRequest.getEmailName(),
+        var response = verificationService.sendVerificationDevice(emailRequest.emailName(),
                 deviceId, String.valueOf(request.getAttribute(GlobalParamName.Attribute.DEVICE_NAME)),
                 String.valueOf(request.getAttribute(GlobalParamName.Attribute.DEVICE_TYPE)),
                 userAgent,
                 String.valueOf(request.getAttribute(GlobalParamName.Attribute.IP_ADDRESS)),
                 String.valueOf(request.getAttribute(GlobalParamName.Attribute.LOCATION)));
-        var cookie = authenticationImp.getResponseCookie(GlobalParamName.Cookie.DEVICE_ID,
-                String.valueOf(response.getData()),
-                Duration.ofDays(3650));
-        response.setData(null);
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body(response);
+        return returnCookie(response);
     }
 
     @PostMapping("verify")

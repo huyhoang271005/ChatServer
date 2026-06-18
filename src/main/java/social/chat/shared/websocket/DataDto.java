@@ -14,6 +14,7 @@ import social.chat.message.api.dto.MessageDto;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DataDto {
     WebsocketEventType type;
+    Long senderId;
     ConversationDto conversation;
     MessageDto message;
 }

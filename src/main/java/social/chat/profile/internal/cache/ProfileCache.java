@@ -8,8 +8,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.profile.api.dto.ProfileShortDto;
-import social.chat.profile.internal.mapper.ProfileMapper;
+import social.chat.profile.api.dto.ProfileInfo;
 import social.chat.profile.internal.repository.ProfileRepository;
 import social.chat.shared.common.ApplicationProperties;
 
@@ -21,24 +20,23 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProfileCache {
     ProfileRepository profileRepository;
-    ProfileMapper profileMapper;
     CacheManager cacheManager;
     ApplicationProperties applicationProperties;
 
     @Transactional
-    public List<ProfileShortDto> getShortProfileByUserIds(List<Long> userIds) {
+    public List<ProfileInfo> getShortProfileByUserIds(List<Long> userIds) {
         if(userIds == null || userIds.isEmpty()) {
             return List.of();
         }
 
-        List<ProfileShortDto> result = new ArrayList<>();
+        List<ProfileInfo> result = new ArrayList<>();
         List<Long> missingUserIds = new ArrayList<>();
 
         Cache profileCache = cacheManager.getCache("profile");
 
         for(Long userId : userIds) {
             if(profileCache != null) {
-                ProfileShortDto profileShortDto = profileCache.get(userId, ProfileShortDto.class);
+                ProfileInfo profileShortDto = profileCache.get(userId, ProfileInfo.class);
                 if(profileShortDto != null) {
                     result.add(profileShortDto);
                 }
@@ -49,18 +47,10 @@ public class ProfileCache {
         }
 
         if(!missingUserIds.isEmpty()) {
-            profileRepository.getProfileInfo(missingUserIds)
-                    .stream()
-                    .map(profileInfo -> {
-                        ProfileShortDto profileShortDto = profileMapper.toProfileShortDto(profileInfo);
-                        if(profileShortDto.getAvatarUrl() == null){
-                            profileShortDto.setAvatarUrl(applicationProperties.getUnknowUserUrl());
-                        }
-                        return profileShortDto;
-                    })
-                    .forEach(profileShortDto -> {
-                        profileCache.put(profileShortDto.getUserId(), profileShortDto);
-                        result.add(profileShortDto);
+            profileRepository.getProfileInfo(missingUserIds, applicationProperties.getUnknowUserUrl())
+                    .forEach(profileInfo -> {
+                        profileCache.put(profileInfo.userId(), profileInfo);
+                        result.add(profileInfo);
                     });
         }
         return result;
