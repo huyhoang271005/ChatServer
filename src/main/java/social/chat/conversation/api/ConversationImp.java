@@ -7,6 +7,8 @@ import java.util.List;
 
 @NamedInterface
 public interface ConversationImp {
-    void putConversation(ConversationDto conversationDto, boolean saveDb);
+    void putConversation(ConversationDto conversationDto);
     List<ConversationDto> getConversations(List<Long> conversationIds);
+    void saveBatchPendingConversations();
+    void saveAllPendingConversations();
 }

@@ -17,4 +17,15 @@ public final class GlobalParamName {
         public static final String SESSION_ID = "sessionId";
     }
 
+    public static final class CacheName {
+        public static final String SESSION = "session";
+        public static final String USER_FCM = "user-fcm";
+        public static final String USER_SHORT_PROFILE = "user-short-profile";
+        public static final String USER = "user";
+        public static final String ROLE = "role";
+        public static final String CONVERSATION = "conversation";
+        public static final String MESSAGE = "message";
+        public static final String REACTION = "reaction";
+    }
+
 }

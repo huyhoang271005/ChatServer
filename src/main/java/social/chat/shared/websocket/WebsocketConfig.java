@@ -95,23 +95,31 @@ public class WebsocketConfig implements WebSocketMessageBrokerConfigurer {
                         throw new MessageDeliveryException("UNAUTHORIZED:TOKEN_INVALID");
                     }
 
-                    // 2. LỆNH SUBSCRIBE CHỈ CẦN LẤY USER ĐÃ GHIM RA CHECK QUYỀN (Không giải mã lại)
                     if (StompCommand.SUBSCRIBE.equals(command)) {
-                        Principal principal = accessor.getUser(); // Tự động có nhờ lệnh CONNECT ghim trước đó
+                        Principal principal = accessor.getUser();
                         if (principal == null) {
                             throw new MessageDeliveryException("UNAUTHORIZED");
                         }
 
                         String destination = accessor.getDestination();
                         if (destination != null) {
-                            String stringSubscribe = destination.split("/")[2];
-                            Long userIdSubscribe = Long.parseLong(stringSubscribe.split("\\.")[1]);
+                            if(!destination.split("/")[1].equals(websocketProperties.getBrokerPaths()
+                                    .getFirst().replace("/", ""))){
+                                log.error("Broker {} path not match", destination.split("/")[1]);
+                                throw new MessageDeliveryException("broker path does not exist");
+                            }
+                            String stringSubscribeTopic = destination.split("/")[2];
+                            if(!stringSubscribeTopic.split("\\.")[0].equals("users")){
+                                log.error("topic is /topic/{} not match", stringSubscribeTopic.split("\\.")[0]);
+                                throw new MessageDeliveryException("only subscribe topics users");
+                            }
+                            log.info("Subscribe to {}", destination);
+                            Long userIdSubscribe = Long.parseLong(stringSubscribeTopic.split("\\.")[1]);
                             Long userId = Long.parseLong(principal.getName());
 
                             if (!userId.equals(userIdSubscribe)) {
                                 throw new MessageDeliveryException("FORBIDDEN");
                             }
-                            log.info("subscribed to {}", destination);
                         }
                     }
                 }

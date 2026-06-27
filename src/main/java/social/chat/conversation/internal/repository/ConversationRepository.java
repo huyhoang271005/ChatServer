@@ -23,7 +23,18 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
             join uc.conversation c
             where uc.userId = :userId
             and :lastId is null or c.conversationId < :lastId
-            order by c.lastMessageId desc
+            order by c.updatedAt desc
             """)
     Slice<Long> findConversationIdsByUserId(Long userId, Long lastId, Pageable pageable);
+
+    @Query("""
+    select count(c) > 0 from Conversation c where c in (
+        select uc.conversation
+        from UserConversation uc
+        where uc.conversation.group = :group
+          and uc.userId in :userIds
+        group by uc.conversation
+        having count(distinct uc.userId) = :#{#userIds.size()})
+    """)
+    boolean existsByGroupAndAllUsers(Boolean group, List<Long> userIds);
 }

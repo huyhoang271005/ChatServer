@@ -3,24 +3,30 @@ package social.chat.verification.internal;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.CreationTimestamp;
+import org.jspecify.annotations.Nullable;
+import social.chat.shared.common.BaseEntity;
+import social.chat.shared.generateId.GenerateId;
 import social.chat.verification.internal.enums.VerificationStatus;
 import social.chat.verification.internal.enums.VerificationType;
-import social.chat.shared.generateId.GenerateId;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "verification", indexes = {
-        @Index(name = "idx_verification_session", columnList = "session_id")
+        @Index(name = "idx_session_id_type_type_id_created_at",
+                columnList = "session_id, type, type_id, created_at desc"),
+        @Index(name = "idx_type_id_status", columnList = "type_id, status"),
+        @Index(name = "idx_expired_at_status", columnList = "expired_at, status")
 })
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Verification {
+public class Verification extends BaseEntity {
     @Id
     @GenerateId
     @Column(name = "verification_id")
@@ -46,7 +52,12 @@ public class Verification {
     @Column(name = "session_id")
     Long sessionId;
 
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at")
     @CreationTimestamp
     Instant createdAt;
+
+    @Override
+    public @Nullable Long getId() {
+        return this.verificationId;
+    }
 }

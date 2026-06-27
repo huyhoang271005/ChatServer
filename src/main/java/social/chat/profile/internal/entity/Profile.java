@@ -3,9 +3,12 @@ package social.chat.profile.internal.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.Nationalized;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.jspecify.annotations.Nullable;
 import social.chat.profile.internal.enums.Gender;
+import social.chat.shared.common.BaseEntity;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -16,9 +19,14 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @Getter
 @Setter
-@Builder
+@SuperBuilder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Profile {
+public class Profile extends BaseEntity {
+    @Override
+    public @Nullable Long getId() {
+        return this.userId;
+    }
+
     @Id
     @Column(name = "user_id")
     Long userId;

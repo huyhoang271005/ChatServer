@@ -5,20 +5,19 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import social.chat.conversation.api.ConversationImp;
 import social.chat.conversation.api.dto.ConversationDto;
 import social.chat.message.api.dto.MessageDto;
-import social.chat.message.api.events.RegisterSaveMessageEvent;
-import social.chat.profile.api.ProfileImp;
+import social.chat.message.internal.cache.MessageCache;
+import social.chat.message.internal.repository.MessageRepository;
 import social.chat.shared.common.GlobalMessage;
 import social.chat.shared.dto.Response;
 import social.chat.shared.dto.ResponseList;
-import social.chat.shared.websocket.DataDto;
+import social.chat.shared.exception.ConflictException;
+import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.shared.websocket.WebsocketEventType;
 import social.chat.shared.websocket.WebsocketService;
 
@@ -31,40 +30,49 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class MessageService {
     MessageRepository messageRepository;
-    MessageMapper messageMapper;
     ConversationImp conversationImp;
-    ApplicationEventPublisher applicationEventPublisher;
+    MessageCache messageCache;
     WebsocketService websocketService;
-    private final ProfileImp profileImp;
 
-    @Transactional(readOnly = true)
     public Response<ResponseList<MessageDto>> getMessages(Long conversationId, Long lastId, Pageable pageable) {
-        Slice<Message> messages = messageRepository.findByConversationId(conversationId, lastId, pageable);
-        List<MessageDto> messageDtos = messages.stream()
-                .map(message -> {
-                    MessageDto messageDto = messageMapper.toMessageDto(message);
-                    if(messageDto.getRevoked() != null && messageDto.getRevoked()){
-                        messageDto.setText(null);
-                    }
-                    return messageDto;
-                })
-                .toList();
+        Slice<Long> messageIdsSlice = messageRepository.findByConversationId(conversationId, lastId, pageable);
+        List<MessageDto> messageDtos = messageCache.getMessagesByConversationId(messageIdsSlice.getContent(),
+                conversationId);
         return Response.success(
                 GlobalMessage.Success.GET,
                 new ResponseList<>(
                         messageDtos,
-                        messages.hasNext()
+                        messageIdsSlice.hasNext()
                 )
         );
     }
 
-    @Transactional
-    public void sendMessage(Long userId, MessageDto messageDto) {
+    public void checkRoleThenSendMessage(Long userId, MessageDto messageDto, String clientMsgId){
         ConversationDto conversationDto = conversationImp.getConversations(List.of(
                 messageDto.getConversationId()
         )).getFirst();
+        conversationDto.getUserConversations()
+                .stream()
+                .filter(userConversationDto -> userConversationDto
+                        .getUserId().equals(userId))
+                .findAny()
+                .ifPresent(userConversationDto -> {
+                    if(!conversationDto.getRolesCanChat()
+                            .contains(userConversationDto.getConversationRole())){
+                        throw new ConflictException(MessageMessages.LIMIT);
+                    }
+                    sendMessage(userId, messageDto, clientMsgId, conversationDto);
+
+                });
+    }
+
+    public void sendMessage(Long userId, MessageDto messageDto, String clientMsgId, ConversationDto conversationDto) {
+        if(messageDto.getText() == null || messageDto.getText().isEmpty()){
+            return;
+        }
         Long lastMessageId = YitIdHelper.nextId();
         messageDto.setMessageId(lastMessageId);
+        messageDto.setNew(true);
         Instant now = Instant.now();
         messageDto.setCreatedAt(now);
         messageDto.setSenderId(userId);
@@ -74,9 +82,24 @@ public class MessageService {
         conversationDto.setLastSenderId(userId);
         conversationDto.setLastMessageType(messageDto.getType());
         conversationDto.setLastMessageRevoked(false);
+        conversationDto.setUpdatedAt(Instant.now());
+        if(messageDto.getReplyMessageId() != null){
+            MessageDto messageDtoReply = messageCache.getMessagesCache(List.of(messageDto.getReplyMessageId()))
+                    .orElseThrow(() -> new EntityNotFoundException(MessageMessages.NOT_EXISTS))
+                    .getFirst();
+            if(messageDtoReply != null){
+                log.info("Found reply message {}", messageDtoReply.getMessageId());
+                messageDto.setReplyMessageId(messageDtoReply.getMessageId());
+                messageDto.setReplyText(messageDtoReply.getText());
+                messageDto.setReplyType(messageDtoReply.getType());
+                messageDto.setRevoked(messageDtoReply.getRevoked());
+            }
+        }
         String title = conversationDto.getUserConversations().size() == 2 ?
-                profileImp.getShortProfiles(List.of(userId)).getFirst()
-                .fullName() : conversationDto.getTitle();
+                conversationDto.getUserConversations()
+                .stream()
+                .filter(userConversationDto -> userConversationDto.getUserId().equals(userId))
+                .toList().getFirst().getFullName(): conversationDto.getTitle();
         conversationDto.setTitle(title);
         conversationDto.getUserConversations()
                 .stream()
@@ -84,40 +107,28 @@ public class MessageService {
                         .getUserId().equals(userId))
                 .forEach(userConversationDto -> userConversationDto
                         .setUnreadMessage(userConversationDto.getUnreadMessage() + 1));
-        conversationImp.putConversation(conversationDto, false);
-        websocketService.sendMessage(userId, DataDto.builder()
-                .type(WebsocketEventType.NEW_MESSAGE)
-                .conversation(conversationDto)
-                .message(messageDto)
-                .build());
-        applicationEventPublisher.publishEvent(new RegisterSaveMessageEvent(title, messageDto));
+        conversationImp.putConversation(conversationDto);
+        messageCache.putMessageCache(messageDto.getMessageId(), messageDto);
+        websocketService.sendMessageToConversation(userId, clientMsgId, WebsocketEventType.NEW_MESSAGE,
+                conversationDto.getConversationId(), messageDto.getMessageId());
     }
 
-    public void typingMessage(Long userId, MessageDto messageDto) {
+    public void typingMessage(Long userId, MessageDto messageDto, String clientMsgId) {
         ConversationDto conversationDto = conversationImp.getConversations(List
                 .of(messageDto.getConversationId())).getFirst();
-        DataDto dataDto = DataDto.builder()
-                .type(WebsocketEventType.TYPING)
-                .conversation(conversationDto)
-                .message(messageDto)
-                .build();
-        websocketService.sendMessage(userId, dataDto);
+        websocketService.sendMessageToConversation(userId, clientMsgId, WebsocketEventType.TYPING,
+                conversationDto.getConversationId(), messageDto.getMessageId());
     }
 
-    public void unTypingMessage(Long userId, MessageDto messageDto) {
+    public void unTypingMessage(Long userId, MessageDto messageDto, String clientMsgId) {
         ConversationDto conversationDto = conversationImp.getConversations(List
                 .of(messageDto.getConversationId())).getFirst();
         messageDto.setSenderId(userId);
-        DataDto dataDto = DataDto.builder()
-                .type(WebsocketEventType.UNTYPING)
-                .conversation(conversationDto)
-                .message(messageDto)
-                .build();
-        websocketService.sendMessage(userId, dataDto);
+        websocketService.sendMessageToConversation(userId, clientMsgId, WebsocketEventType.UNTYPING,
+                conversationDto.getConversationId(), messageDto.getMessageId());
     }
 
-    @Transactional
-    public void seenMessage(Long userId, MessageDto messageDto) {
+    public void seenMessage(Long userId, MessageDto messageDto, String clientMsgId) {
         ConversationDto conversationDto = conversationImp.getConversations(List
                 .of(messageDto.getConversationId())).getFirst();
         conversationDto.getUserConversations()
@@ -127,42 +138,31 @@ public class MessageService {
                         userConversationDto.setUnreadMessage(0);
                     }
                 });
-        conversationImp.putConversation(conversationDto, false);
-        DataDto dataDto = DataDto.builder()
-                .type(WebsocketEventType.SEEN_MESSAGE)
-                .conversation(conversationDto)
-                .message(messageDto)
-                .build();
-        websocketService.sendMessage(
-                userId,
-                dataDto
-        );
+        conversationImp.putConversation(conversationDto);
+        websocketService.sendMessageToConversation(userId, clientMsgId, WebsocketEventType.SEEN_MESSAGE,
+                conversationDto.getConversationId(), messageDto.getMessageId());
     }
 
-    @Transactional
-    public void revokeMessage(Long userId, MessageDto messageDto) {
-        Message message = messageRepository.findById(messageDto.getMessageId())
-                .orElse(null);
-        if(message == null) {
-            log.error("Message {} not found", messageDto.getMessageId());
+    public void revokeMessage(Long userId, MessageDto messageDtoCurrent, String clientMsgId) {
+        MessageDto messageDto = messageCache.getMessagesCache(List.of(messageDtoCurrent.getMessageId()))
+                .orElseThrow(() -> new EntityNotFoundException(MessageMessages.NOT_EXISTS))
+                .getFirst();
+        if(messageDto == null) {
+            log.error("Message {} not found", messageDtoCurrent.getMessageId());
             return;
         }
-        if(!message.getSenderId().equals(userId)) {
-            log.error("User {} cant revoke user message {}", userId, message.getSenderId());
+        if(!messageDto.getSenderId().equals(userId)) {
+            log.error("User {} cant revoke user message {}", userId, messageDto.getSenderId());
             return;
         }
         messageDto.setRevoked(true);
-        message.setRevoked(true);
         ConversationDto conversationDto = conversationImp.getConversations(List
                 .of(messageDto.getConversationId())).getFirst();
         conversationDto.setLastMessageText(null);
         conversationDto.setLastMessageRevoked(true);
-        conversationImp.putConversation(conversationDto, true);
-        DataDto dataDto = DataDto.builder()
-                .type(WebsocketEventType.REVOKE_MESSAGE)
-                .conversation(conversationDto)
-                .message(messageDto)
-                .build();
-        websocketService.sendMessage(userId, dataDto);
+        conversationImp.putConversation(conversationDto);
+        messageCache.putMessageCache(messageDto.getMessageId(), messageDto);
+        websocketService.sendMessageToConversation(userId, clientMsgId, WebsocketEventType.REVOKE_MESSAGE,
+                conversationDto.getConversationId(), messageDto.getMessageId());
     }
 }

@@ -16,6 +16,7 @@ import social.chat.authentication.api.dto.LoginRequest;
 import social.chat.authentication.api.dto.SessionValidation;
 import social.chat.authentication.api.dto.TokenDto;
 import social.chat.authentication.internal.AuthenticationMessage;
+import social.chat.authentication.internal.cache.FcmTokenCache;
 import social.chat.authentication.internal.entity.Session;
 import social.chat.authentication.internal.entity.Token;
 import social.chat.authentication.internal.enums.TokenType;
@@ -28,7 +29,7 @@ import social.chat.shared.common.GlobalMessage;
 import social.chat.shared.common.GlobalParamName;
 import social.chat.shared.dto.Response;
 import social.chat.shared.exception.ConflictException;
-import social.chat.shared.exception.UnauthorizedException;
+import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.shared.security.JwtService;
 import social.chat.user.api.UserImp;
 
@@ -49,6 +50,7 @@ public class AuthenticationService {
     JwtDecoder jwtDecoder;
     UserImp userImp;
     AuthenticationImp authenticationImp;
+    private final FcmTokenCache fcmTokenCache;
 
     @Transactional
     protected TokenDto createToken(Long deviceId, Long userId, String fcmToken, boolean verifiedEmail, Instant timeExpired) {
@@ -56,28 +58,40 @@ public class AuthenticationService {
         boolean updateProfile = profileImp.getUpdated(userId);
         return Optional.ofNullable(deviceId)
                 .flatMap(deviceRepository::findById)
-                .flatMap(device -> sessionRepository.findByDeviceAndUserId(device, userId))
-                .map(session -> {
+                .map(device -> {
+                    Session session = sessionRepository.findByDeviceAndUserId(device, userId)
+                            .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage
+                                    .Session.NOT_EXISTS));
                     boolean verifiedDevice = session.getValidated();
                     String accessToken;
                     String refreshToken;
                     refreshToken = jwtService.generateJwt(userId, session.getSessionId(), true, timeExpired);
                     log.info("Generated refresh token");
-                    Token tokenJwt = tokenRepository.findBySessionAndTokenType(session, TokenType.REFRESH_TOKEN)
+                    Token tokenJwt = tokenRepository.findByDeviceAndTokenType(device, TokenType.REFRESH_TOKEN)
                             .orElseGet(() -> Token.builder()
                                     .tokenType(TokenType.REFRESH_TOKEN)
-                                    .session(session)
+                                    .device(device)
                                     .build());
                     tokenJwt.setTokenValue(refreshToken);
-                    Token tokenFcm = tokenRepository.findBySessionAndTokenType(session, TokenType.FCM_TOKEN)
-                            .orElseGet(() -> Token.builder()
-                                    .tokenType(TokenType.FCM_TOKEN)
-                                    .session(session)
-                                    .build());
+                    Token tokenFcm = tokenRepository.findByDeviceAndTokenType(device, TokenType.FCM_TOKEN)
+                            .orElse(null);
                     if(fcmToken != null){
-                        tokenFcm.setTokenValue(fcmToken);
+                        if(tokenFcm != null) {
+                            tokenFcm.setTokenValue(fcmToken);
+                        }
+                        else {
+                            tokenFcm = Token.builder()
+                                    .tokenType(TokenType.FCM_TOKEN)
+                                    .device(device)
+                                    .tokenValue(fcmToken)
+                                    .build();
+                            tokenRepository.save(tokenFcm);
+                        }
+                        List<String> fcmTokens = fcmTokenCache.getFcmTokenByUserIds(List.of(userId));
+                        fcmTokens.add(fcmToken);
+                        fcmTokenCache.putFcmTokenByUserId(userId, fcmTokens);
                     }
-                    tokenRepository.saveAll(List.of(tokenJwt, tokenFcm));
+                    tokenRepository.save(tokenJwt);
                     session.setLastLogin(Instant.now());
                     session.setRevoked(false);
                     accessToken = jwtService.generateJwt(userId, session.getSessionId(), false, timeExpired);
@@ -105,17 +119,7 @@ public class AuthenticationService {
 
     @Transactional
     public Response<TokenDto> refreshToken(String refreshToken, Long deviceId, String ipAddress, String location) {
-        Jwt jwt;
-        try {
-            jwt = jwtDecoder.decode(refreshToken);
-        } catch (Exception e) {
-            tokenRepository.findByTokenValue(refreshToken).ifPresent(token -> {
-                Session session = token.getSession();
-                session.setRevoked(true);
-            });
-            log.error(e.getMessage());
-            throw new UnauthorizedException(AuthenticationMessage.Session.EXPIRED);
-        }
+        Jwt jwt = jwtDecoder.decode(refreshToken);
         Long userId = Long.parseLong(jwt.getSubject());
         userImp.getRoleIdAndCheckAccountStatus(userId);
         authenticationImp.checkSession(jwt.getClaim(GlobalParamName.Jwt.SESSION_ID), ipAddress, location, true);

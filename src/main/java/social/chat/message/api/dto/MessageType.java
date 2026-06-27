@@ -6,11 +6,13 @@ import org.springframework.modulith.NamedInterface;
 @NamedInterface
 public enum MessageType {
     TEXT,
-    SMAIL,
     IMAGE,
     VIDEO,
     AUDIO,
-    FILE;
+    FILE,
+    REMOVE_MEMBER,
+    ADD_MEMBER,
+    LEAVED;
 
     @JsonCreator
     public static MessageType forValue(String value) {

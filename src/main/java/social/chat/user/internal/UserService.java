@@ -59,7 +59,6 @@ public class UserService {
         );
     }
 
-    @Transactional(readOnly = true)
     public Response<ExtendUser> getExtendedUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException(UserMessage.User.NOT_EXITS));

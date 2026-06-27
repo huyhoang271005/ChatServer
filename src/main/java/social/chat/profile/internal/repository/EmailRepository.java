@@ -21,7 +21,7 @@ public interface EmailRepository extends JpaRepository<Email, Long> {
     @Query("""
             select distinct e.userId
             from Email e
-            where (:emailName is null or e.emailName like concat('%', :emailName, '%'))
+            where (:emailName is null or e.emailName like concat(:emailName, '%'))
             and (:lastId is null or e.userId < :lastId)
             order by e.userId desc
             """)

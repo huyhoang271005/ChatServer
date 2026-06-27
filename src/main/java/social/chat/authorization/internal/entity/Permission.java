@@ -3,19 +3,24 @@ package social.chat.authorization.internal.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
+import org.jspecify.annotations.Nullable;
+import social.chat.shared.common.BaseEntity;
 import social.chat.shared.generateId.GenerateId;
 
 import java.util.List;
 
-@Table(name = "permissions")
+@Table(name = "permissions", indexes = {
+        @Index(name = "idx_permission_name", columnList = "permission_name")
+})
 @Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Permission {
+public class Permission extends BaseEntity {
     @Id
     @GenerateId
     @Column(name = "permission_id")
@@ -26,4 +31,9 @@ public class Permission {
 
     @OneToMany(mappedBy = "permission", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     List<RolePermission> rolePermissions;
+
+    @Override
+    public @Nullable Long getId() {
+        return this.permissionId;
+    }
 }

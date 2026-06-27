@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import social.chat.shared.dto.Response;
 
@@ -14,11 +16,17 @@ import social.chat.shared.dto.Response;
 @RequestMapping("messages")
 public class MessageController {
     MessageService messageService;
+    ReactorService reactorService;
 
     @GetMapping("{conversationId}")
     public ResponseEntity<Response<?>> getMessages(@PathVariable Long conversationId,
                                                    @RequestParam(required = false) Long lastId,
                                                    Pageable pageable) {
         return ResponseEntity.ok(messageService.getMessages(conversationId, lastId, pageable));
+    }
+
+    @GetMapping("{messageId}/reactor")
+    public ResponseEntity<Response<?>> getReactor(@PathVariable Long messageId) {
+        return ResponseEntity.ok(reactorService.getReactors(messageId));
     }
 }

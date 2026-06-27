@@ -37,7 +37,6 @@ public class UserLogicService implements UserImp {
     ApplicationEventPublisher applicationEventPublisher;
 
     @Override
-    @Transactional(readOnly = true)
     public void checkUser(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(() ->
                 new ConflictException(UserMessage.User.NOT_EXITS));
@@ -48,7 +47,6 @@ public class UserLogicService implements UserImp {
     }
 
     @Override
-    @Transactional
     public Long getAndCreateUser() {
         return userRepository.save(User.builder()
                         .accountStatus(AccountStatus.PENDING_PROFILE)
@@ -59,7 +57,6 @@ public class UserLogicService implements UserImp {
     }
 
     @Override
-    @Transactional
     public void updateAccountStatusFromPendingToActive(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException(UserMessage.User.NOT_EXITS));
@@ -69,15 +66,14 @@ public class UserLogicService implements UserImp {
     }
 
     @Override
-    @Transactional
     public void updateAccountStatusToInactive(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException(UserMessage.User.NOT_EXITS));
         user.setAccountStatus(AccountStatus.INACTIVE);
+        userRepository.save(user);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Long getRoleIdAndCheckAccountStatus(Long userId) {
         UserCacheDto userCacheDto = userCache.getUserCache(userId);
         if(userCacheDto.accountStatus() != AccountStatus.ACTIVE &&
@@ -112,7 +108,6 @@ public class UserLogicService implements UserImp {
     }
 
     @Override
-    @Transactional
     public void updateInactiveToPendingProfileOrActive(Long userId, boolean profileUpdated) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException(UserMessage.User.NOT_EXITS));
@@ -122,19 +117,19 @@ public class UserLogicService implements UserImp {
             } else {
                 user.setAccountStatus(AccountStatus.PENDING_PROFILE);
             }
+            userRepository.save(user);
         }
     }
 
     @Override
-    @Transactional
     public void updatePasswordHash(Long userId, String newPassword) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException(UserMessage.User.NOT_EXITS));
         user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public boolean checkPassword(Long userId, String password) {
         User user = userRepository.findById(userId).orElseThrow(() ->
                 new EntityNotFoundException(UserMessage.User.NOT_EXITS));
@@ -142,7 +137,6 @@ public class UserLogicService implements UserImp {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public boolean isInactive(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException(UserMessage.User.NOT_EXITS));

@@ -8,7 +8,6 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.web.bind.annotation.*;
 import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.JwtProperties;
@@ -67,7 +66,7 @@ public class AuthController {
     public ResponseEntity<Response<?>> loginGoogle(@Valid @RequestBody FirebaseLoginRequest firebaseLoginRequest,
                                                    @CookieValue(name = GlobalParamName.Cookie.DEVICE_ID , required = false)
                                                    Long deviceId,
-                                                   @Header(name = HttpHeaders.USER_AGENT) String userAgent,
+                                                   @RequestHeader(name = HttpHeaders.USER_AGENT) String userAgent,
                                                    HttpServletRequest request) {
         var response = authenticationService.oauth2Login(firebaseLoginRequest,
                 deviceId, String.valueOf(request.getAttribute(GlobalParamName.Attribute.DEVICE_NAME)),

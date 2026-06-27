@@ -11,6 +11,7 @@ public final class GlobalMessage {
         public static final String DATA_INVALID = "global.error.data.invalid";
         public static final String TOKEN_INVALID = "global.error.token.invalid";
         public static final String FORBIDDEN = "global.error.forbidden";
+        public static final String TEXT_OVERFLOW = "global.error.text-overflow";
     }
 
     public static final class Success {

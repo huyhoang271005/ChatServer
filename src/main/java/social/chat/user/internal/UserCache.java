@@ -4,11 +4,12 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import social.chat.shared.common.GlobalParamName;
 import social.chat.user.api.dto.UserCacheDto;
 
 import java.time.Instant;
@@ -17,12 +18,12 @@ import java.time.Instant;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@CacheConfig(cacheNames = GlobalParamName.CacheName.USER)
 public class UserCache {
     UserRepository userRepository;
     UserMapper userMapper;
 
-    @Transactional(readOnly = true)
-    @Cacheable(value = "users", key = "#userId")
+    @Cacheable(key = "#userId")
     public UserCacheDto getUserCache(Long userId) {
         User user = userRepository.findById(userId).orElse(null);
         if(user != null) {
@@ -32,8 +33,7 @@ public class UserCache {
         return null;
     }
 
-    @Transactional
-    @CachePut(value = "users", key = "#userId")
+    @CachePut(key = "#userId")
     public UserCacheDto updateUserCache(Long userId, Long roleId, AccountStatus accountStatus,
                                         Instant expireAt, boolean saveDb) {
         log.info("Updated cache for user {}", userId);
@@ -49,13 +49,14 @@ public class UserCache {
                                 user.setExpireAt(expireAt);
                             }
                         }
+                        userRepository.save(user);
                     });
             log.info("Db update user for user {}", userId);
         }
         return new UserCacheDto(roleId, accountStatus, expireAt);
     }
 
-    @CacheEvict(cacheNames = "users", key = "#userId")
+    @CacheEvict(key = "#userId")
     public void deleteUserCache(Long userId) {
         log.info("Deleted user for user {}", userId);
     }

@@ -4,7 +4,6 @@ import java.time.Instant;
 
 public record SessionDto (
     Long sessionId,
-    String location,
     Boolean validated,
     Boolean revoked,
     String ipAddress,

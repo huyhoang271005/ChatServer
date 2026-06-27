@@ -3,7 +3,6 @@ package social.chat.conversation.internal;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
@@ -14,7 +13,10 @@ import java.util.List;
 public enum ConversationRole {
     CREATOR(List.of(
             ConversationPermission.ADD_MEMBER,
-            ConversationPermission.REMOVE_MEMBER
+            ConversationPermission.REMOVE_MEMBER,
+            ConversationPermission.UPDATE_CONVERSATION,
+            ConversationPermission.CLOSE_CONVERSATION,
+            ConversationPermission.CHANGE_ROLE_MEMBER
     )),
     ADMIN(List.of(
 

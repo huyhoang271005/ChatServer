@@ -3,11 +3,16 @@ package social.chat.conversation.internal.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.Nationalized;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
+import org.jspecify.annotations.Nullable;
 import social.chat.conversation.internal.ConversationRole;
 import social.chat.message.api.dto.MessageType;
+import social.chat.shared.common.BaseEntity;
 import social.chat.shared.generateId.GenerateId;
 
 import java.time.Instant;
@@ -15,16 +20,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Table(name = "conversations", indexes = {
-        @Index(name = "idx_conversation_last_message", columnList = "last_message_id")
+        @Index(name = "idx_updated_at_conversaton_id", columnList = "updated_at desc")
 })
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
-@Builder
+@SuperBuilder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Conversation {
+public class Conversation extends BaseEntity {
     @Id
     @GenerateId
     @Column(name = "conversation_id")
@@ -34,8 +39,11 @@ public class Conversation {
     @Column(length = 125)
     String title;
 
-    @Column(name = "conversation_avatar", length = 500)
-    String conversationAvatar;
+    @Column(name = "conversation_avatar_url", length = 500)
+    String conversationAvatarUrl;
+
+    @Column(name = "conversation_avatar_id", length = 125)
+    String conversationAvatarId;
 
     @Column(name = "is_group")
     boolean group;
@@ -63,18 +71,20 @@ public class Conversation {
     @Column(name = "created_by")
     Long createdBy;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "roles_can_chat", length = 125)
+    List<ConversationRole> rolesCanChat;
+
     @Column(name = "created_at")
-    @CreationTimestamp
     Instant createdAt;
 
     @Column(name = "updated_at")
-    @UpdateTimestamp
     Instant updatedAt;
 
     @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "conversation")
     List<UserConversation> userConversations;
 
-    public void addUserConversations(List<Long> userIds, ConversationRole role){
+    public List<UserConversation> addUserConversations(List<Long> userIds, ConversationRole role){
         if(this.userConversations == null){
             this.userConversations = new ArrayList<>();
         }
@@ -84,8 +94,15 @@ public class Conversation {
                     .userId(userId)
                     .conversationRole(role)
                     .unreadMessage(0)
+                    .joinedAt(Instant.now())
                     .build();
             this.userConversations.add(userConversation);
         }
+        return this.userConversations;
+    }
+
+    @Override
+    public @Nullable Long getId() {
+        return this.conversationId;
     }
 }

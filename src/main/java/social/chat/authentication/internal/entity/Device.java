@@ -3,7 +3,10 @@ package social.chat.authentication.internal.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.Nationalized;
+import org.jspecify.annotations.Nullable;
+import social.chat.shared.common.BaseEntity;
 import social.chat.shared.generateId.GenerateId;
 
 import java.util.List;
@@ -14,9 +17,9 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Device {
+public class Device extends BaseEntity {
     @Id
     @GenerateId
     @Column(name = "device_id")
@@ -32,6 +35,16 @@ public class Device {
     @Column(name = "user_agent")
     String userAgent;
 
+    String location;
+
     @OneToMany(mappedBy = "device", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     List<Session> sessions;
+
+    @OneToMany(mappedBy = "device", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    List<Token> tokens;
+
+    @Override
+    public @Nullable Long getId() {
+        return this.deviceId;
+    }
 }

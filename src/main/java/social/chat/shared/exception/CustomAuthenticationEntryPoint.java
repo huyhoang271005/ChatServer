@@ -31,11 +31,12 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
                 new Response<>(
                         false,
                         responseTranslationAdvice.getString(GlobalMessage.Error.TOKEN_INVALID),
-                        authException.getMessage()
+                        responseTranslationAdvice.getString(authException.getMessage())
                 )
         );
         response.setContentType("application/json;charset=UTF-8");
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.getWriter().print(json);
+        log.error(authException.toString());
     }
 }

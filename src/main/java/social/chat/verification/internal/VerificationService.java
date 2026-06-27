@@ -45,8 +45,7 @@ public class VerificationService {
     ApplicationProperties applicationProperties;
     VerificationMapper verificationMapper;
 
-    @Transactional
-    public Long sendEmailVerification(VerificationType verificationType, String title,
+    private Long sendEmailVerification(VerificationType verificationType, String title,
                                       String emailName, Long deviceId, String deviceName,
                                       String deviceType, String userAgent, String ipAddress,
                                       String location, int expireAfterHour, String webUrl) {
@@ -198,7 +197,6 @@ public class VerificationService {
         );
     }
 
-    @Transactional(readOnly = true)
     public Response<List<VerificationResponse>> getVerifications(Long sessionId){
         List<Verification> verifications = verificationRepository.findBySessionId(sessionId);
         return Response.success(

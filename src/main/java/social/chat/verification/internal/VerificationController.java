@@ -8,7 +8,6 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.web.bind.annotation.*;
 import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.dto.EmailRequest;
@@ -30,7 +29,7 @@ public class VerificationController {
         var cookie = authenticationImp.getResponseCookie(GlobalParamName.Cookie.DEVICE_ID,
                 String.valueOf(response.data()),
                 Duration.ofDays(3650));
-        response = new Response<>(response.success(), response.message(), null);
+        response = Response.success(response.message(), response.data());
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
@@ -42,7 +41,7 @@ public class VerificationController {
                                                              @CookieValue(name = GlobalParamName.Cookie.DEVICE_ID,
                                                                      required = false)
                                                              Long deviceId,
-                                                             @Header(name = HttpHeaders.USER_AGENT) String userAgent,
+                                                             @RequestHeader(name = HttpHeaders.USER_AGENT) String userAgent,
                                                              HttpServletRequest request) {
         var response = verificationService.sendVerificationEmail(emailRequest.emailName(),
                 deviceId, String.valueOf(request.getAttribute(GlobalParamName.Attribute.DEVICE_NAME)),
@@ -58,7 +57,7 @@ public class VerificationController {
                                                                      @CookieValue(name = GlobalParamName.Cookie.DEVICE_ID,
                                                                              required = false)
                                                                      Long deviceId,
-                                                                     @Header(name = HttpHeaders.USER_AGENT)
+                                                                     @RequestHeader(name = HttpHeaders.USER_AGENT)
                                                                          String userAgent,
                                                                      HttpServletRequest request) {
         var response = verificationService.sendVerificationChangePassword(emailRequest.emailName(),
@@ -76,7 +75,7 @@ public class VerificationController {
                                                               @CookieValue(name = GlobalParamName.Cookie.DEVICE_ID,
                                                                       required = false)
                                                               Long deviceId,
-                                                              @Header(name = HttpHeaders.USER_AGENT)
+                                                              @RequestHeader(name = HttpHeaders.USER_AGENT)
                                                                   String userAgent,
                                                               HttpServletRequest request) {
         var response = verificationService.sendVerificationDevice(emailRequest.emailName(),

@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.NonNull;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -35,25 +36,29 @@ public class CustomJwtAuthenticationConverter implements Converter<Jwt, Abstract
     @Override
     @Transactional(readOnly = true)
     public AbstractAuthenticationToken convert(@NonNull Jwt source) {
-        Long userId = Long.valueOf(source.getSubject());
-        Long roleId = userImp.getRoleIdAndCheckAccountStatus(userId);
-        ServletRequestAttributes servletRequestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        String ipAddress = null;
-        String location = null;
-        if(servletRequestAttributes != null) {
-            ipAddress = String.valueOf(servletRequestAttributes.getRequest()
-                    .getAttribute(GlobalParamName.Attribute.IP_ADDRESS));
-            location = String.valueOf(servletRequestAttributes.getRequest()
-                    .getAttribute(GlobalParamName.Attribute.LOCATION));
+        try {
+            Long userId = Long.valueOf(source.getSubject());
+            Long roleId = userImp.getRoleIdAndCheckAccountStatus(userId);
+            ServletRequestAttributes servletRequestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            String ipAddress = null;
+            String location = null;
+            if(servletRequestAttributes != null) {
+                ipAddress = String.valueOf(servletRequestAttributes.getRequest()
+                        .getAttribute(GlobalParamName.Attribute.IP_ADDRESS));
+                location = String.valueOf(servletRequestAttributes.getRequest()
+                        .getAttribute(GlobalParamName.Attribute.LOCATION));
+            }
+            authenticationImp.checkSession(source.getClaim(GlobalParamName.Jwt.SESSION_ID), ipAddress,
+                    location, false);
+            RolePermissionDto rolePermissionDto = authorizationImp.getRolePermissionByRoleId(roleId);
+            List<GrantedAuthority> authorities = rolePermissionDto.permissions()
+                    .stream()
+                    .map(PermissionDto::permissionName)
+                    .map(SimpleGrantedAuthority::new)
+                    .collect(Collectors.toList());
+            return new JwtAuthenticationToken(source, authorities);
+        } catch (Exception e) {
+            throw new BadCredentialsException(e.getMessage());
         }
-        authenticationImp.checkSession(source.getClaim(GlobalParamName.Jwt.SESSION_ID), ipAddress,
-                location, false);
-        RolePermissionDto rolePermissionDto = authorizationImp.getRolePermissionByRoleId(roleId);
-        List<GrantedAuthority> authorities = rolePermissionDto.permissions()
-                .stream()
-                .map(PermissionDto::permissionName)
-                .map(SimpleGrantedAuthority::new)
-                .collect(Collectors.toList());
-        return new JwtAuthenticationToken(source, authorities);
     }
 }

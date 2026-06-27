@@ -21,7 +21,6 @@ import social.chat.authentication.internal.entity.Session;
 import social.chat.authentication.internal.mapper.SessionMapper;
 import social.chat.authentication.internal.repository.DeviceRepository;
 import social.chat.authentication.internal.repository.SessionRepository;
-import social.chat.authentication.internal.repository.TokenRepository;
 import social.chat.profile.api.ProfileImp;
 import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.shared.exception.UnauthorizedException;
@@ -45,9 +44,8 @@ public class AuthenticationLogicService implements AuthenticationImp {
     ApplicationEventPublisher applicationEventPublisher;
     JwtProperties jwtProperties;
     AuthenticationCronjobProperties authenticationCronjobProperties;
-    TokenRepository tokenRepository;
     SessionMapper sessionMapper;
-    private final ProfileImp profileImp;
+    ProfileImp profileImp;
 
     @Override
     @Transactional
@@ -61,6 +59,7 @@ public class AuthenticationLogicService implements AuthenticationImp {
                         .deviceName(deviceName)
                         .deviceType(deviceType)
                         .userAgent(userAgent)
+                        .location(location)
                         .build()));
         Session session = sessionRepository.findByDeviceAndUserId(device, userId).orElseGet(() ->
                 sessionRepository.save(Session.builder()
@@ -69,7 +68,6 @@ public class AuthenticationLogicService implements AuthenticationImp {
                         .ipAddress(ipAddress)
                         .device(device)
                         .validated(validated)
-                        .location(location)
                         .build()));
         return sessionMapper.toSessionValidation(session);
     }
@@ -88,7 +86,6 @@ public class AuthenticationLogicService implements AuthenticationImp {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Long getUserIdBySessionId(Long sessionId) {
         return sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Session.NOT_EXISTS))
@@ -107,13 +104,13 @@ public class AuthenticationLogicService implements AuthenticationImp {
     }
 
     @Override
-    @Transactional
     public void updateValidatedSession(Long sessionId, boolean validated) {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Session.NOT_EXISTS));
         if(session.getValidated() != validated){
             session.setValidated(validated);
         }
+        sessionRepository.save(session);
     }
 
     @Override
@@ -129,9 +126,11 @@ public class AuthenticationLogicService implements AuthenticationImp {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public void checkSession(Long sessionId, String ipAddress, String location, boolean saveDb) {
-        SessionCacheDto sessionCacheDto = sessionCache.getCacheSession(sessionId);
+        SessionCacheDto sessionCacheDto = sessionCache.getCacheSession(sessionId)
+                .orElseThrow(() -> new UnauthorizedException(
+                        AuthenticationMessage.Session.NOT_EXISTS
+                ));
         if(sessionCacheDto.revoked()){
             throw new UnauthorizedException(AuthenticationMessage.Session.EXPIRED);
         }
@@ -166,11 +165,5 @@ public class AuthenticationLogicService implements AuthenticationImp {
         applicationEventPublisher
                 .publishEvent(new VerificationDeleteBySessionIdsRegisteredEvent(sessionIds));
         log.info("{} sessions deleted by scheduled", sessionDeleted);
-    }
-
-    @Override
-    @Transactional
-    public List<String> getFcmTokenByUserIds(List<Long> userIds) {
-        return tokenRepository.findFcmTokeValueByUserIds(userIds);
     }
 }

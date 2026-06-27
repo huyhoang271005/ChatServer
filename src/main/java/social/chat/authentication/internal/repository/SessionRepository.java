@@ -5,7 +5,6 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import social.chat.authentication.internal.entity.Device;
 import social.chat.authentication.internal.entity.Session;
 
@@ -28,9 +27,19 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
             from Session s
             join fetch s.device
             where s.userId = :userId
-            and (:lastId is null or s.sessionId > :lastId)
+            and s.sessionId != :mySessionId
+            and (:lastId is null or s.sessionId < :lastId)
+            order by s.sessionId desc
             """)
-    Slice<Session> findByUserIdAndLastId(Long userId, Long lastId, Pageable pageable);
+    Slice<Session> findByUserIdAndLastId(Long userId, Long lastId, Long mySessionId, Pageable pageable);
+
+    @Query("""
+            select s
+            from Session s
+            join fetch s.device
+            where s.sessionId = :sessionId
+            """)
+    Optional<Session> findBySessionId(Long sessionId);
 
     int deleteByUserIdAndSessionId(Long userId, Long sessionId);
 

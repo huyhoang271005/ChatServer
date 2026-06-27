@@ -21,7 +21,7 @@ public class CloudinaryListenedEvent {
     Cloudinary cloudinary;
 
     @ApplicationModuleListener
-    public void deleteImages(CloudinaryRegisteredEvent event) {
+    public void deleteImages(CloudinaryDeleteEvent event) {
         if(event.publicIds() != null && !event.publicIds().isEmpty()){
             try {
                 Map<?, ?> result = cloudinary.api().deleteResources(event.publicIds(), ObjectUtils.emptyMap());

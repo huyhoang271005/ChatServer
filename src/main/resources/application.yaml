@@ -1,21 +1,21 @@
+server:
+  shutdown: graceful
 spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 1m
   config:
     import: optional:file:.env[.properties]
   application:
     name: ${APP_NAME}
     frontend-url: ${FRONTEND_URL}
     backend-url: ${BACKEND_URL}
-    app-image: ${APP_IMAGE}
+    app-image: ${FRONTEND_URL}/${APP_ICON}
     unknow-user-url: ${UNKNOW_USER_URL}
-  cache:
-    type: caffeine
-    caffeine:
-      spec: expireAfterAccess=900s, maximumSize=1000
   threads:
     virtual:
       enabled: true
   messages:
-    basename: messages/profile/profile, messages/authentication/authentication, messages/global/global, messages/authorization/authorization, messages/verification/verification, messages/user/user
+    basename: messages/profile/profile, messages/authentication/authentication, messages/global/global, messages/authorization/authorization, messages/verification/verification, messages/user/user, messages/conversation/conversation, messages/message/message
     encoding: UTF-8
     fallback-to-system-locale: false
   jpa:
@@ -23,7 +23,11 @@ spring:
       ddl-auto: update
     properties:
       hibernate:
-        default_batch_fetch_size: 50
+        default_batch_fetch_size: ${DEFAULT_BATCH_FETCH_SIZE}
+        order_updates: true
+        order_inserts: true
+        jdbc:
+          batch_size: ${BATCH_SIZE}
   datasource:
     url: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
@@ -53,6 +57,9 @@ spring:
           ssl:
             enable: true
             trust: ${MAIL_HOST}
+  modulith:
+    events:
+      completion-mode: delete
 app:
   websocket:
     endpoint: "/ws"
@@ -71,6 +78,12 @@ cloudinary:
   cloud-name: ${CLOUD_NAME}
   api-key: ${CLOUD_API_KEY}
   api-secret: ${CLOUD_API_SECRET}
+cache:
+  expire-after-access:
+    message: ${MESSAGE_EXPIRE_AFTER_ACCESS}
+    conversation: ${CONVERSATION_EXPIRE_AFTER_ACCESS}
+    reactor: ${REACTOR_EXPIRE_AFTER_ACCESS}
+
 cron-config:
   user:
     cleanup-user-cron: ${CLEANUP_USER_CRON}
@@ -88,3 +101,9 @@ cron-config:
     revoked-session-expired-cron: ${REVOKED_SESSION_EXPIRED_CRON}
     cleanup-session-cron: ${CLEANUP_SESSION_CRON}
     days-to-keep-session-revoked: ${DAYS_TO_KEEP_SESSION_REVOKED}
+  conversation:
+    batch-size: ${CONVERSATIONS_BATCH_SIZE}
+  message:
+    batch-size: ${MESSAGES_BATCH_SIZE}
+  reactor:
+    batch-size: ${REACTORS_BATCH_SIZE}

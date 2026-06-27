@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.dto.TokenDto;
-import social.chat.cloudinary.api.events.CloudinaryRegisteredEvent;
+import social.chat.cloudinary.api.events.CloudinaryDeleteEvent;
 import social.chat.profile.api.dto.ProfileInfo;
 import social.chat.profile.internal.cache.ProfileCache;
 import social.chat.profile.internal.repository.EmailRepository;
@@ -44,7 +44,6 @@ public class ProfileService {
     ProfileCache profileCache;
     ApplicationProperties applicationProperties;
 
-    @Transactional
     public Response<TokenDto> createProfile(Long userId, String fullName, Long deviceId) {
         userImp.checkUser(userId);
         if(profileRepository.existsById(userId)){
@@ -67,7 +66,7 @@ public class ProfileService {
         Profile profile = profileRepository.findById(userId)
                         .orElseThrow(() -> new EntityNotFoundException(ProfileMessage.Profile.NOT_EXITS));
         if( profile.getAvatarId() != null && !profileDto.avatarId().equals(profile.getAvatarId())) {
-            CloudinaryRegisteredEvent event = new CloudinaryRegisteredEvent(List.of(profile.getAvatarId()));
+            CloudinaryDeleteEvent event = new CloudinaryDeleteEvent(List.of(profile.getAvatarId()));
             applicationEventPublisher.publishEvent(event);
         }
         if(profileRepository.existsByUsernameAndUserIdNot(profileDto.username(), userId)){
@@ -83,7 +82,6 @@ public class ProfileService {
         );
     }
 
-    @Transactional(readOnly = true)
     public Response<ProfileDto> getProfile(Long userId) {
         ProfileDto profileDto = profileMapper.toProfileDTO(profileRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException(ProfileMessage.Profile.NOT_EXITS)),
@@ -94,7 +92,6 @@ public class ProfileService {
         );
     }
 
-    @Transactional
     public Response<ProfileInfo> getProfileShort(Long userId) {
         List<ProfileInfo> profileShortDtos = profileCache.getShortProfileByUserIds(List.of(userId));
         return Response.success(
@@ -103,10 +100,9 @@ public class ProfileService {
         );
     }
 
-    @Transactional(readOnly = true)
     public Response<ResponseList<ProfileInfo>> getProfiles(Long lastId, String emailName, Pageable pageable) {
         Slice<Long> userSlice = emailRepository.findUserIdsByEmailName(emailName, lastId, pageable);
-        var profiles = profileRepository.getProfileInfo(userSlice.getContent(), applicationProperties.getUnknowUserUrl());
+        List<ProfileInfo> profiles = profileCache.getShortProfileByUserIds(userSlice.getContent());
         return Response.success(
                 GlobalMessage.Success.GET,
                 new ResponseList<>(

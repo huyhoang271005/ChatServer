@@ -26,20 +26,23 @@ public class NotificationController {
     }
 
     @PostMapping("enable")
-    public ResponseEntity<Response<?>> enable(@AuthenticationPrincipal Jwt jwt,
-                                              @RequestBody FirebaseLoginRequest firebaseLoginRequest) {
+    public ResponseEntity<Response<?>> enable(@CookieValue(value = GlobalParamName.Cookie.DEVICE_ID)
+                                              Long deviceId,
+                                              @RequestBody FirebaseLoginRequest firebaseLoginRequest,
+                                              @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(notificationService.enableNotification(
-                jwt.getClaim(GlobalParamName.Jwt.SESSION_ID),
+                Long.parseLong(jwt.getSubject()), deviceId,
                 firebaseLoginRequest,
                 true
         ));
     }
 
     @PostMapping("disable")
-    public ResponseEntity<Response<?>> disable(@AuthenticationPrincipal Jwt jwt,
-                                              @RequestBody FirebaseLoginRequest firebaseLoginRequest) {
+    public ResponseEntity<Response<?>> disable(@CookieValue(GlobalParamName.Cookie.DEVICE_ID) Long deviceId,
+                                               @RequestBody FirebaseLoginRequest firebaseLoginRequest,
+                                               @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(notificationService.enableNotification(
-                jwt.getClaim(GlobalParamName.Jwt.SESSION_ID),
+                Long.parseLong(jwt.getSubject()), deviceId,
                 firebaseLoginRequest,
                 false
         ));

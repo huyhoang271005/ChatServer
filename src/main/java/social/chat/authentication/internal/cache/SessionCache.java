@@ -4,55 +4,53 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.dto.SessionCacheDto;
-import social.chat.authentication.internal.AuthenticationMessage;
-import social.chat.authentication.internal.entity.Session;
 import social.chat.authentication.internal.mapper.SessionMapper;
 import social.chat.authentication.internal.repository.SessionRepository;
-import social.chat.shared.exception.EntityNotFoundException;
+import social.chat.shared.common.GlobalParamName;
 
 import java.util.Objects;
+import java.util.Optional;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@CacheConfig(cacheNames = GlobalParamName.CacheName.SESSION)
 public class SessionCache {
     SessionRepository sessionRepository;
     SessionMapper sessionMapper;
 
-    @Cacheable(cacheNames = "sessions", key = "#sessionId")
-    @Transactional(readOnly = true)
-    public SessionCacheDto getCacheSession(Long sessionId) {
+    @Cacheable(key = "#sessionId")
+    public Optional<SessionCacheDto> getCacheSession(Long sessionId) {
         log.info("Cached session for session {}", sessionId);
         return sessionRepository.findById(sessionId)
-                .map(sessionMapper::toSessionCacheDto)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        AuthenticationMessage.Session.NOT_EXISTS
-                ));
+                .map(sessionMapper::toSessionCacheDto);
     }
 
-    @Transactional
-    @CachePut(cacheNames = "sessions", key = "#sessionId")
+    @CachePut(key = "#sessionId")
     public SessionCacheDto putCacheSession(Long sessionId, boolean revoked, String oldIpAddress,
                                            String newIpAddress, String location, boolean saveDb) {
         log.info("Updated cache for session {}", sessionId);
         if(saveDb && ! Objects.equals(oldIpAddress, newIpAddress)) {
-            Session session = sessionRepository.findById(sessionId)
-                    .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage.Session.NOT_EXISTS));
-            session.setIpAddress(newIpAddress);
-            session.setRevoked(revoked);
-            session.setLocation(location);
+            sessionRepository.findById(sessionId)
+                    .ifPresent(session -> {
+                        session.setIpAddress(newIpAddress);
+                        session.setRevoked(revoked);
+                        sessionRepository.save(session);
+                    });
+
         }
         return new SessionCacheDto(revoked, newIpAddress);
     }
 
-    @CacheEvict(cacheNames = "sessions", key = "#sessionId")
+    @CacheEvict(key = "#sessionId")
     @Transactional
     public void evictCacheSession(Long sessionId, Long userId, boolean saveDb) {
         log.info("Removed cache for session {}", sessionId);

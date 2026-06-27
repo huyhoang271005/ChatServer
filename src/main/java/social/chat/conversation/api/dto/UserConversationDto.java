@@ -1,5 +1,6 @@
 package social.chat.conversation.api.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -15,7 +16,9 @@ import java.time.Instant;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserConversationDto {
+    Long userConversationId;
     Long userId;
+    Long conversationId;
     String fullName;
     String username;
     String avatarUrl;
@@ -23,6 +26,6 @@ public class UserConversationDto {
     ConversationRole conversationRole;
     Integer unreadMessage;
     Instant joinedAt;
-
-
+    @JsonIgnore
+    boolean isNew;
 }

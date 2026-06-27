@@ -13,7 +13,6 @@ import social.chat.authorization.internal.entity.Role;
 import social.chat.authorization.internal.enums.PermissionName;
 import social.chat.authorization.internal.enums.RoleDefault;
 import social.chat.authorization.internal.repository.PermissionRepository;
-import social.chat.authorization.internal.repository.RolePermissionRepository;
 import social.chat.authorization.internal.repository.RoleRepository;
 
 import java.util.ArrayList;
@@ -28,7 +27,6 @@ import java.util.stream.Collectors;
 public class RolePermissionInit implements ApplicationRunner {
     RoleRepository roleRepository;
     PermissionRepository permissionRepository;
-    RolePermissionRepository rolePermissionRepository;
 
     @Transactional
     public void init() {
@@ -47,31 +45,43 @@ public class RolePermissionInit implements ApplicationRunner {
             }
         }
 
-        // 3. Nếu có quyền mới, lưu vào DB và gộp chung vào danh sách tổng
         if (!newPermissions.isEmpty()) {
             List<Permission> savedNewPermissions = permissionRepository.saveAll(newPermissions);
             existingPermissions.addAll(savedNewPermissions); // Gộp quyền mới vào danh sách tổng
         }
 
+        List<Role> roles = roleRepository.findAllRolesWithPermissions();
         // 4. Khởi tạo hoặc lấy ra Role ADMIN
-        Role roleAdmin = roleRepository.findByRoleName(RoleDefault.ADMIN.name())
-                .orElseGet(() -> roleRepository.save(Role.builder()
-                        .roleName(RoleDefault.ADMIN.name())
-                        .build()));
+        roles.stream()
+                .filter(role -> role.getRoleName().equals(RoleDefault.ADMIN.name()))
+                .findAny()
+                .ifPresentOrElse(role -> {
+                            List<String> adminPermissionNames = role.getRolePermissions()
+                                    .stream()
+                                    .map(rolePermission -> rolePermission.getPermission().getPermissionName())
+                                    .toList();
+                    List<Permission> adminPermissionsNew = existingPermissions.stream()
+                            .filter(permission -> !adminPermissionNames.contains(permission.getPermissionName()))
+                            .toList();
+                    if(!adminPermissionsNew.isEmpty()) {
+                        role.addRolePermission(adminPermissionsNew);
+                        roleRepository.save(role);
+                    }
+                        },
+                        () -> {
+                            Role role = Role.builder()
+                                    .roleName(RoleDefault.ADMIN.name())
+                                    .build();
+                            role.addRolePermission(existingPermissions);
+                            roleRepository.save(role);
+                        });
 
-        // 5. Xóa sạch liên kết cũ của ADMIN
-        rolePermissionRepository.deleteByRole(roleAdmin);
-
-        //  CỨU CÁNH Ở ĐÂY: Dùng danh sách TỔNG (existingPermissions) chứa TẤT CẢ các quyền để lưu
-        roleAdmin.addRolePermission(existingPermissions);
-        roleRepository.save(roleAdmin);
-
-        // 6. Khởi tạo Role USER nếu chưa có
-        Role roleUser = roleRepository.findByRoleName(RoleDefault.USER.name())
+        roles.stream()
+                .filter(role -> role.getRoleName().equals(RoleDefault.USER.name()))
+                .findAny()
                 .orElseGet(() -> roleRepository.save(Role.builder()
                         .roleName(RoleDefault.USER.name())
                         .build()));
-        rolePermissionRepository.deleteByRole(roleUser);
 
         log.info("Role Permission initialized");
     }

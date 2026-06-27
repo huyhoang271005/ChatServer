@@ -29,7 +29,7 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
             """)
     Optional<Role> findRoleWithPermissions(Long roleId);
 
-    @Modifying(clearAutomatically = true)
+    @Modifying
     @Query("""
             delete
             from Role r

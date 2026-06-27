@@ -1,20 +1,22 @@
 package social.chat.shared.websocket;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.*;
-import lombok.experimental.FieldDefaults;
-import social.chat.conversation.api.dto.ConversationDto;
-import social.chat.message.api.dto.MessageDto;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.groups.ConvertGroup;
+import social.chat.conversation.api.dto.GroupValidConversation;
+import social.chat.message.api.dto.GroupValidMessage;
 
-@AllArgsConstructor
-@Getter
-@Setter
-@Builder
-@FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class DataDto {
-    WebsocketEventType type;
-    Long senderId;
-    ConversationDto conversation;
-    MessageDto message;
-}
+public record DataDto<T> (
+    WebsocketEventType type,
+    Long senderId,
+    @NotBlank
+    String clientMsgId,
+    @Valid
+    @ConvertGroup(from = GroupValidConversation.onlyConversationId.class,
+            to = GroupValidConversation.onlyConversationId.class)
+    @ConvertGroup(from = GroupValidMessage.onlyConversationId.class,
+            to = GroupValidMessage.onlyConversationId.class)
+    @ConvertGroup(from = GroupValidMessage.onlyMessageId.class,
+            to = GroupValidMessage.onlyMessageId.class)
+    T data
+){}

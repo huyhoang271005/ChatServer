@@ -34,7 +34,6 @@ public class ProfileLogicService implements ProfileImp {
     EmailMapper emailMapper;
 
     @Override
-    @Transactional(readOnly = true)
     public boolean existsEmailByEmailName(String email) {
         return emailRepository.existsByEmailName(email);
     }
@@ -45,7 +44,6 @@ public class ProfileLogicService implements ProfileImp {
     }
 
     @Override
-    @Transactional
     public void createEmail(String emailName, Long userId, boolean isVerified) {
         emailRepository.save(Email.builder()
                 .emailName(emailName)
@@ -55,7 +53,6 @@ public class ProfileLogicService implements ProfileImp {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public String getFullName(Long userId) {
         Profile profile = profileRepository.findById(userId)
                 .orElse(null);
@@ -63,7 +60,6 @@ public class ProfileLogicService implements ProfileImp {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public EmailDto getUserByEmail(String emailName) {
         Email email = emailRepository.findByEmailName(emailName)
                 .orElseThrow(() -> new EntityNotFoundException(ProfileMessage.Email.NOT_EXITS));
@@ -71,7 +67,6 @@ public class ProfileLogicService implements ProfileImp {
     }
 
     @Override
-    @Transactional
     public void verifiedEmail(Long emailId) {
         Email email = emailRepository.findById(emailId)
                 .orElseThrow(() -> new EntityNotFoundException(ProfileMessage.Email.NOT_EXITS));
@@ -82,7 +77,6 @@ public class ProfileLogicService implements ProfileImp {
     }
 
     @Override
-    @Transactional
     public Long getUserIdByEmail(String emailName) {
         Email email = emailRepository.findByEmailName(emailName)
                 .orElseGet(() -> emailRepository.save(Email.builder()
@@ -95,7 +89,6 @@ public class ProfileLogicService implements ProfileImp {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public boolean getUpdated(Long userId) {
         Profile profile = profileRepository.findById(userId)
                 .orElse(null);
@@ -110,7 +103,6 @@ public class ProfileLogicService implements ProfileImp {
     }
 
     @Override
-    @Transactional
     public List<ProfileInfo> getShortProfiles(List<Long> userIds) {
         return profileCache.getShortProfileByUserIds(userIds);
     }

@@ -81,7 +81,6 @@ public class RoleService {
         );
     }
 
-    @Transactional
     public Response<Void> softDeleteRole(Long roleId) {
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new EntityNotFoundException(AuthorizationMessage.Role.NOT_EXISTS));
@@ -93,6 +92,7 @@ public class RoleService {
             throw new ConflictException(AuthorizationMessage.Role.DEFAULT_CANT_REMOVE, role.getRoleName());
         }
         role.setDeletedAt(Instant.now());
+        roleRepository.save(role);
         roleCache.deleteRolePermissionCache(roleId);
         AuthorizationUpdateRoleToUserRegisteredEvent event = new AuthorizationUpdateRoleToUserRegisteredEvent(roleId);
         applicationEventPublisher.publishEvent(event);
@@ -102,7 +102,6 @@ public class RoleService {
         );
     }
 
-    @Transactional(readOnly = true)
     public Response<List<PermissionDto>> getAllPermissions(){
         List<Permission> permissions = permissionRepository.findAll();
         return Response.success(
@@ -113,7 +112,6 @@ public class RoleService {
         );
     }
 
-    @Transactional(readOnly = true)
     public Response<List<RolePermissionDto>> getAllRolePermissions() {
         List<Role> roles = roleRepository.findAllRolesWithPermissions();
         List<RolePermissionDto> rolePermissionDtos = roles.stream()
@@ -125,11 +123,11 @@ public class RoleService {
         );
     }
 
-    @Transactional
     public Response<Void> restoreRole(Long roleId) {
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new EntityNotFoundException(AuthorizationMessage.Role.NOT_EXISTS));
         role.setDeletedAt(null);
+        roleRepository.save(role);
         return Response.success(
                 GlobalMessage.Success.UPDATED,
                 null

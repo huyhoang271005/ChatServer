@@ -26,7 +26,6 @@ public class EmailService {
     EmailMapper emailMapper;
     UserImp userImp;
 
-    @Transactional(readOnly = true)
     public Response<List<EmailDto>> getEmails(Long userId) {
         return Response.success(
                 GlobalMessage.Success.GET,

@@ -3,7 +3,10 @@ package social.chat.authorization.internal.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.Nationalized;
+import org.jspecify.annotations.Nullable;
+import social.chat.shared.common.BaseEntity;
 import social.chat.shared.generateId.GenerateId;
 
 import java.time.Instant;
@@ -11,23 +14,28 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Table(name = "roles", indexes = {
-        @Index(name = "idx_user_role", columnList = "role_id")
+        @Index(name = "idx_role_name", columnList = "role_name")
 })
 @Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Role {
+public class Role extends BaseEntity {
+    @Override
+    public @Nullable Long getId() {
+        return this.roleId;
+    }
+
     @Id
     @GenerateId
     @Column(name = "role_id")
     Long roleId;
 
     @Nationalized
-    @Column(name = "role_name", length = 125)
+    @Column(name = "role_name", unique = true, length = 125)
     String roleName;
 
     @Column(name = "deleted_at")

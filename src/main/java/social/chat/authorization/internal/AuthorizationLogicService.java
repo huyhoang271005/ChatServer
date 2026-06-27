@@ -30,7 +30,6 @@ public class AuthorizationLogicService implements AuthorizationImp {
     AuthorizationCronjobProperties authorizationCronjobProperties;
 
     @Override
-    @Transactional(readOnly = true)
     public Long getRoleIdByRoleUser() {
         return roleRepository.findByRoleName(RoleDefault.USER.name())
                 .orElseThrow(() -> new EntityNotFoundException(AuthorizationMessage.Role.NOT_EXISTS))
@@ -38,13 +37,11 @@ public class AuthorizationLogicService implements AuthorizationImp {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public RolePermissionDto getRolePermissionByRoleId(Long roleId) {
         return roleCache.getRolePermissionsCache(roleId);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public void existsRoleByRoleIdAndNotDelete(Long roleId) {
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new EntityNotFoundException(AuthorizationMessage.Role.NOT_EXISTS));
@@ -53,7 +50,6 @@ public class AuthorizationLogicService implements AuthorizationImp {
     }
 
     @Override
-    @Transactional
     public void updateRoleToUser(Long oldRoleId) {
         roleRepository.findByRoleName(RoleDefault.USER.name())
                 .ifPresent(roleUser -> applicationEventPublisher

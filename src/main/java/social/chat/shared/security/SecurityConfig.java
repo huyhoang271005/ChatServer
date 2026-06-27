@@ -7,16 +7,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.modulith.NamedInterface;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.firewall.DefaultHttpFirewall;
 import org.springframework.security.web.firewall.HttpFirewall;
 import org.springframework.web.cors.CorsConfiguration;
@@ -39,6 +36,7 @@ public class SecurityConfig {
     CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     CustomAccessDeniedHandler customAccessDeniedHandler;
     CustomJwtAuthenticationConverter customJwtAuthenticationConverter;
+    DeviceInfoFilter deviceInfoFilter;
 
     @Bean
     @Order(1)
@@ -47,10 +45,10 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .securityMatcher("/auth/**", "/users/auth/**", "/profiles/auth/**", "/ws/**",
                         "/verifications/**",
-                        "/v3/api-docs/**",         // Đường dẫn lấy file json cấu hình OpenAPI
-                        "/v3/api-docs.yaml",       // Đường dẫn lấy file yaml (nếu cần)
-                        "/swagger-ui/**",          // Giao diện chính Swagger UI
-                        "/swagger-ui.html",        // File html bọc ngoài (cho một số phiên bản)
+                        "/v3/api-docs/**",
+                        "/v3/api-docs.yaml",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
                         "/webjars/**",
                         "/error/**")
                 .csrf(AbstractHttpConfigurer::disable)
@@ -77,6 +75,7 @@ public class SecurityConfig {
                                         jwt.jwtAuthenticationConverter(customJwtAuthenticationConverter))
                                 .authenticationEntryPoint(customAuthenticationEntryPoint)
                                 .accessDeniedHandler(customAccessDeniedHandler))
+                .addFilterAfter(deviceInfoFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception ->
                         exception.authenticationEntryPoint(customAuthenticationEntryPoint)
                                 .accessDeniedHandler(customAccessDeniedHandler))
@@ -87,26 +86,20 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Thay bằng URL chuẩn của Frontend của bạn (ví dụ: http://localhost:3000)
-        // KHÔNG ĐƯỢC dùng "*" nếu bạn muốn sử dụng Cookie (allowCredentials = true)
         configuration.setAllowedOrigins(List.of(
                 applicationProperties.getFrontendUrl(),
-                applicationProperties.getBackendUrl()
+                applicationProperties.getBackendUrl(),
+                "https://uncoagulative-tyrannisingly-eddie.ngrok-free.dev"
         ));
 
-        // Các Method HTTP cho phép Frontend gọi lên
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 
-        // Các Header cho phép Frontend gửi lên (Phải có Authorization để gửi Access Token)
         configuration.setAllowedHeaders(List.of("*"));
 
-        // Các Header cho phép bên Frontend đọc được từ Response trả về
         configuration.setExposedHeaders(List.of("Authorization"));
 
-        // CỰC KỲ QUAN TRỌNG: Cho phép trình duyệt đính kèm Cookie (Refresh Token) và thông tin xác thực
         configuration.setAllowCredentials(true);
 
-        // Thời gian trình duyệt được phép cache cấu hình CORS này (ở đây là 1 tiếng), không cần gửi request hỏi lại liên tục
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
