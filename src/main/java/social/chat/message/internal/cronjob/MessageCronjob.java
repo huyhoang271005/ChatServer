@@ -8,8 +8,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.message.api.events.RegisterSaveMessageEvent;
-import social.chat.message.api.events.RegisterSaveReactorEvent;
+import social.chat.message.api.events.SaveBatchMessageEvent;
+import social.chat.message.api.events.SaveBatchReactorEvent;
 
 @Slf4j
 @Component
@@ -21,11 +21,11 @@ public class MessageCronjob {
     @Scheduled(fixedDelayString = "#{@cacheExpireWriteAccessProperties.message.toMillis() / 2}")
     @Transactional
     public void saveMessageCron(){
-        applicationEventPublisher.publishEvent(new RegisterSaveMessageEvent());
+        applicationEventPublisher.publishEvent(new SaveBatchMessageEvent());
     }
 
     @Scheduled(fixedDelayString = "#{@cacheExpireWriteAccessProperties.reactor.toMillis() / 2}")
     public void saveReactorCron(){
-        applicationEventPublisher.publishEvent(new RegisterSaveReactorEvent());
+        applicationEventPublisher.publishEvent(new SaveBatchReactorEvent());
     }
 }

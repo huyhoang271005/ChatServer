@@ -29,7 +29,6 @@ import social.chat.shared.common.GlobalMessage;
 import social.chat.shared.common.GlobalParamName;
 import social.chat.shared.dto.Response;
 import social.chat.shared.exception.ConflictException;
-import social.chat.shared.exception.EntityNotFoundException;
 import social.chat.shared.security.JwtService;
 import social.chat.user.api.UserImp;
 
@@ -60,8 +59,11 @@ public class AuthenticationService {
                 .flatMap(deviceRepository::findById)
                 .map(device -> {
                     Session session = sessionRepository.findByDeviceAndUserId(device, userId)
-                            .orElseThrow(() -> new EntityNotFoundException(AuthenticationMessage
-                                    .Session.NOT_EXISTS));
+                            .orElse(null);
+                    if(session == null) {
+                        return new TokenDto(userId, deviceId, verifiedEmail, false, null, null,
+                                hasProfile, updateProfile);
+                    }
                     boolean verifiedDevice = session.getValidated();
                     String accessToken;
                     String refreshToken;
@@ -78,14 +80,6 @@ public class AuthenticationService {
                     if(fcmToken != null){
                         if(tokenFcm != null) {
                             tokenFcm.setTokenValue(fcmToken);
-                        }
-                        else {
-                            tokenFcm = Token.builder()
-                                    .tokenType(TokenType.FCM_TOKEN)
-                                    .device(device)
-                                    .tokenValue(fcmToken)
-                                    .build();
-                            tokenRepository.save(tokenFcm);
                         }
                         List<String> fcmTokens = fcmTokenCache.getFcmTokenByUserIds(List.of(userId));
                         fcmTokens.add(fcmToken);

@@ -26,6 +26,7 @@ public final class GlobalParamName {
         public static final String CONVERSATION = "conversation";
         public static final String MESSAGE = "message";
         public static final String REACTION = "reaction";
+        public static final String USER_PRESENCE = "user-presence";
     }
 
 }

@@ -93,9 +93,8 @@ public class ReactorCache {
             log.info("No reactor need save");
             return;
         }
-        safeCacheExecutor.saveDataWithIds(reactorIds, reactorIdsPending, longs ->
-                getReactorsCache(longs)
-                        .orElse(List.of()), reactorDtos -> {
+        safeCacheExecutor.saveDataWithIds(reactorIds, reactorIdsPending,
+                this::getReactorsCache, reactorDtos -> {
             Integer dataSave = reactorRepository.saveAll(reactorDtos
                     .stream()
                     .map(reactorCacheDto -> messageMapper.toReactor(reactorCacheDto,

@@ -9,7 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import social.chat.cloudinary.api.events.CloudinaryDeleteEvent;
+import social.chat.shared.storage.api.events.CloudStorageDeleteEvent;
 import social.chat.conversation.api.dto.ConversationDto;
 import social.chat.conversation.api.dto.MemberDto;
 import social.chat.conversation.api.dto.UserConversationDto;
@@ -20,7 +20,7 @@ import social.chat.conversation.internal.repository.UserConversationRepository;
 import social.chat.message.api.MessageImp;
 import social.chat.message.api.dto.MessageDto;
 import social.chat.message.api.dto.MessageType;
-import social.chat.message.api.events.RegisterDeleteMessageEvent;
+import social.chat.message.api.events.DeleteMessageEvent;
 import social.chat.profile.api.ProfileImp;
 import social.chat.profile.api.dto.ProfileInfo;
 import social.chat.shared.common.GlobalMessage;
@@ -273,9 +273,9 @@ public class ConversationService {
         conversationDto.getUserConversations().remove(userConversationDto);
         if(memberCount == 3){
             conversationDto.setGroup(false);
-            if(conversationDto.getConversationAvatarId() != null){
-                applicationEventPublisher.publishEvent(new CloudinaryDeleteEvent(List.of(conversationDto
-                        .getConversationAvatarId())));
+            if(conversationDto.getConversationAvatarUrl() != null){
+                applicationEventPublisher.publishEvent(new CloudStorageDeleteEvent(List.of(conversationDto
+                        .getConversationAvatarUrl())));
             }
             conversationDto.setConversationAvatarUrl(null);
             conversationDto.setTitle(null);
@@ -283,7 +283,7 @@ public class ConversationService {
         conversationCache.updateConversation(conversationDto.getConversationId(), conversationDto);
         websocketService.sendMessageToUser(userId, userRemoveId, null,
                 WebsocketEventType.DELETE_CONVERSATION,
-                conversationDto, null);
+                conversationDto);
         websocketService.sendMessageToConversation(userId, null,
                 WebsocketEventType.UPDATE_CONVERSATION, conversationId, null);
         MessageDto messageDto = MessageDto.builder()
@@ -328,14 +328,14 @@ public class ConversationService {
 
     @Transactional
     public Response<Void> closeConversation(Long userId, Long conversationId){
-        checkRole(userId, conversationId, ConversationPermission.CLOSE_CONVERSATION);
+        checkRole(userId, conversationId, ConversationPermission.DISBAND_CONVERSATION);
         conversationCache.getConversationsCache(List.of(conversationId))
                 .ifPresent(conversationDtos -> {
                     conversationRepository.deleteById(conversationId);
                     websocketService.sendMessageToConversation(userId, null, WebsocketEventType
                             .DELETE_CONVERSATION, conversationId, null);
                     conversationCache.deleteConversation(conversationId);
-                    applicationEventPublisher.publishEvent(new RegisterDeleteMessageEvent(conversationId));
+                    applicationEventPublisher.publishEvent(new DeleteMessageEvent(conversationId));
                 });
         return Response.success(
                 GlobalMessage.Success.DELETED,

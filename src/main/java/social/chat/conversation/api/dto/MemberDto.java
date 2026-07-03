@@ -6,8 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public record MemberDto (
-        @NotNull
+        @NotNull(message = "conversationId not be null")
         Long conversationId,
-        @NotEmpty
+        @NotEmpty(message = "List user id not be empty")
         List<Long> userIds
 ){}

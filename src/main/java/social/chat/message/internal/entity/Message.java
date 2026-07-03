@@ -51,9 +51,6 @@ public class Message extends BaseEntity {
     @Column(name = "conversation_id")
     Long conversationId;
 
-    @Column(name = "file_id", length = 500)
-    String fileId;
-
     @Column(name = "reply_message_id")
     Long replyMessageId;
 

@@ -16,17 +16,27 @@ public class MessageListenedEvent {
     MessageImp messageImp;
 
     @ApplicationModuleListener
-    public void saveMessage(RegisterSaveMessageEvent event){
+    public void saveBatchMessage(SaveBatchMessageEvent event){
         messageImp.saveBatchPendingMessage();
     }
 
     @ApplicationModuleListener
-    public void saveReactor(RegisterSaveReactorEvent event){
+    public void saveBatchReactor(SaveBatchReactorEvent event){
         messageImp.saveBatchPendingReactor();
     }
 
     @ApplicationModuleListener
-    public void deleteMessage(RegisterDeleteMessageEvent event){
+    public void deleteMessage(DeleteMessageEvent event){
         messageImp.deleteByConversationId(event.conversationId());
+    }
+
+    @ApplicationModuleListener
+    public void saveAllMessage(SaveAllMessageEvent event){
+        messageImp.saveAllPendingMessages();
+    }
+
+    @ApplicationModuleListener
+    public void saveAllReactor(SaveBatchReactorEvent event){
+        messageImp.saveAllPendingReactor();
     }
 }

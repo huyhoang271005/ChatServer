@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import social.chat.authentication.api.AuthenticationImp;
 import social.chat.authentication.api.dto.TokenDto;
-import social.chat.cloudinary.api.events.CloudinaryDeleteEvent;
+import social.chat.shared.storage.api.events.CloudStorageDeleteEvent;
 import social.chat.profile.api.dto.ProfileInfo;
 import social.chat.profile.internal.cache.ProfileCache;
 import social.chat.profile.internal.repository.EmailRepository;
@@ -65,8 +65,8 @@ public class ProfileService {
     public Response<Void> updateProfile(Long userId, ProfileDto profileDto) {
         Profile profile = profileRepository.findById(userId)
                         .orElseThrow(() -> new EntityNotFoundException(ProfileMessage.Profile.NOT_EXITS));
-        if( profile.getAvatarId() != null && !profileDto.avatarId().equals(profile.getAvatarId())) {
-            CloudinaryDeleteEvent event = new CloudinaryDeleteEvent(List.of(profile.getAvatarId()));
+        if( profile.getAvatarUrl() != null && !profileDto.avatarUrl().equals(profile.getAvatarUrl())) {
+            CloudStorageDeleteEvent event = new CloudStorageDeleteEvent(List.of(profile.getAvatarUrl()));
             applicationEventPublisher.publishEvent(event);
         }
         if(profileRepository.existsByUsernameAndUserIdNot(profileDto.username(), userId)){

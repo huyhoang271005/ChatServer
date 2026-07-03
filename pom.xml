@@ -118,10 +118,19 @@
 			<artifactId>mapstruct</artifactId>
 			<version>1.6.3</version>
 		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/software.amazon.awssdk/s3 -->
 		<dependency>
-			<groupId>com.cloudinary</groupId>
-			<artifactId>cloudinary-http5</artifactId>
-			<version>2.3.2</version>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>s3</artifactId>
+			<version>2.46.17</version>
+			<scope>compile</scope>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.tika/tika-core -->
+		<dependency>
+			<groupId>org.apache.tika</groupId>
+			<artifactId>tika-core</artifactId>
+			<version>3.3.0</version>
+			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.github.ben-manes.caffeine</groupId>

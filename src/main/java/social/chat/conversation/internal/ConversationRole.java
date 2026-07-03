@@ -15,11 +15,12 @@ public enum ConversationRole {
             ConversationPermission.ADD_MEMBER,
             ConversationPermission.REMOVE_MEMBER,
             ConversationPermission.UPDATE_CONVERSATION,
-            ConversationPermission.CLOSE_CONVERSATION,
+            ConversationPermission.DISBAND_CONVERSATION,
             ConversationPermission.CHANGE_ROLE_MEMBER
     )),
     ADMIN(List.of(
-
+            ConversationPermission.ADD_MEMBER,
+            ConversationPermission.REMOVE_MEMBER
     )),
     MEMBER(List.of());
 

@@ -96,7 +96,9 @@ public class ConversationCache {
     }
 
     @CacheEvict(key = "#conversationId")
-    public void deleteConversation(Long conversationId) {}
+    public void deleteConversation(Long conversationId) {
+        log.info("Deleting conversation cache {}", conversationId);
+    }
 
     public List<Long> getPendingConversationIds() {
         return safeCacheExecutor.getBatchPendingIds(conversationPending,
@@ -114,8 +116,7 @@ public class ConversationCache {
             return;
         }
         safeCacheExecutor.saveDataWithIds(conversationIds, conversationPending,
-                longs -> getConversationsCache(longs)
-                        .orElse(List.of()), conversationDtos -> {
+                this::getConversationsCache, conversationDtos -> {
             Integer dataSave = conversationRepository.saveAll(conversationDtos
                     .stream()
                     .map(conversationMapper::toConversation)

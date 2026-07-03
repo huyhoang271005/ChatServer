@@ -1,4 +1,4 @@
 package social.chat.message.api.events;
 
-public record RegisterSaveMessageEvent() {
+public record SaveAllReactorEvent() {
 }

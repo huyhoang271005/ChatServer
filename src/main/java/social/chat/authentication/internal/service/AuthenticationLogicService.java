@@ -62,13 +62,14 @@ public class AuthenticationLogicService implements AuthenticationImp {
                         .location(location)
                         .build()));
         Session session = sessionRepository.findByDeviceAndUserId(device, userId).orElseGet(() ->
-                sessionRepository.save(Session.builder()
-                        .revoked(revoked)
-                        .userId(userId)
-                        .ipAddress(ipAddress)
-                        .device(device)
-                        .validated(validated)
-                        .build()));
+                Session.builder()
+                .userId(userId)
+                .ipAddress(ipAddress)
+                .device(device)
+                .validated(validated)
+                .build());
+        session.setRevoked(revoked);
+        sessionRepository.save(session);
         return sessionMapper.toSessionValidation(session);
     }
 

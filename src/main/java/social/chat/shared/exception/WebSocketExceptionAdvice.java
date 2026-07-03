@@ -84,7 +84,6 @@ public class WebSocketExceptionAdvice {
                         Long.parseLong(principal.getName()),
                         clientMsgId,
                         WebsocketEventType.ERROR,
-                        null,
                         MessageDto.builder().text(errorMessage).build()
                 );
             } catch (Exception e) {

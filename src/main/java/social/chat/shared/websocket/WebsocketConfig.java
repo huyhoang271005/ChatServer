@@ -28,6 +28,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 import social.chat.shared.security.CustomJwtAuthenticationConverter;
 
 import java.security.Principal;
+import java.util.List;
 
 @NamedInterface
 @Slf4j
@@ -53,11 +54,12 @@ public class WebsocketConfig implements WebSocketMessageBrokerConfigurer {
         taskScheduler.setPoolSize(1);
         taskScheduler.setThreadNamePrefix("ws-heartbeat-thread-");
         taskScheduler.initialize();
-        registry.enableSimpleBroker(websocketProperties.getBrokerPaths().toArray(new String[0]))
+        registry.enableSimpleBroker(websocketProperties.getBroadcastPath(), websocketProperties.getUserPath())
                 .setHeartbeatValue(new long[]{10000, 10000})
                 .setTaskScheduler(taskScheduler);
         registry.setApplicationDestinationPrefixes(websocketProperties
                 .getAppPrefixes().toArray(new String[0]));
+        registry.setUserDestinationPrefix(websocketProperties.getUserDestinationPrefix());
     }
 
     @Override
@@ -92,35 +94,8 @@ public class WebsocketConfig implements WebSocketMessageBrokerConfigurer {
                                 throw new MessageDeliveryException("UNAUTHORIZED:TOKEN_EXPIRED");
                             }
                         }
+                        log.error("Invalid Bearer Token");
                         throw new MessageDeliveryException("UNAUTHORIZED:TOKEN_INVALID");
-                    }
-
-                    if (StompCommand.SUBSCRIBE.equals(command)) {
-                        Principal principal = accessor.getUser();
-                        if (principal == null) {
-                            throw new MessageDeliveryException("UNAUTHORIZED");
-                        }
-
-                        String destination = accessor.getDestination();
-                        if (destination != null) {
-                            if(!destination.split("/")[1].equals(websocketProperties.getBrokerPaths()
-                                    .getFirst().replace("/", ""))){
-                                log.error("Broker {} path not match", destination.split("/")[1]);
-                                throw new MessageDeliveryException("broker path does not exist");
-                            }
-                            String stringSubscribeTopic = destination.split("/")[2];
-                            if(!stringSubscribeTopic.split("\\.")[0].equals("users")){
-                                log.error("topic is /topic/{} not match", stringSubscribeTopic.split("\\.")[0]);
-                                throw new MessageDeliveryException("only subscribe topics users");
-                            }
-                            log.info("Subscribe to {}", destination);
-                            Long userIdSubscribe = Long.parseLong(stringSubscribeTopic.split("\\.")[1]);
-                            Long userId = Long.parseLong(principal.getName());
-
-                            if (!userId.equals(userIdSubscribe)) {
-                                throw new MessageDeliveryException("FORBIDDEN");
-                            }
-                        }
                     }
                 }
                 return message;

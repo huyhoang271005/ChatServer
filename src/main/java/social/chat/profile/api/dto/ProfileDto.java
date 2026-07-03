@@ -20,7 +20,6 @@ public record ProfileDto (
     @Pattern(regexp = ProfileRegexValidation.FULL_NAME, message = ProfileMessage.Validation.FULL_NAME_INVALID)
     String fullName,
     String avatarUrl,
-    String avatarId,
     @NonNull
     @Past
     LocalDate birthday,

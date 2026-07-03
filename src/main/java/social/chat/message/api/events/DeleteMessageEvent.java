@@ -1,6 +1,6 @@
 package social.chat.message.api.events;
 
-public record RegisterDeleteMessageEvent(
+public record DeleteMessageEvent(
         Long conversationId
 ) {
 }

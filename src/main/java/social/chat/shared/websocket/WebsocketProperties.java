@@ -16,6 +16,8 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class WebsocketProperties {
     String endpoint;
-    List<String> brokerPaths;
+    String broadcastPath;
+    String userPath;
+    String userDestinationPrefix;
     List<String> appPrefixes;
 }

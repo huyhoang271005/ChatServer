@@ -77,7 +77,7 @@ public class AuthController {
         return createCookie(response);
     }
 
-    @GetMapping("refresh-token")
+    @PostMapping("refresh-token")
     public ResponseEntity<Response<?>> refreshToken(@CookieValue(name = GlobalParamName.Cookie.REFRESH_TOKEN)
                                                     String refreshToken,
                                                     @CookieValue(name = GlobalParamName.Cookie.DEVICE_ID)

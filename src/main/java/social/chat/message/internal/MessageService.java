@@ -22,6 +22,7 @@ import social.chat.shared.websocket.WebsocketEventType;
 import social.chat.shared.websocket.WebsocketService;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 
 @Slf4j
@@ -73,6 +74,7 @@ public class MessageService {
         Long lastMessageId = YitIdHelper.nextId();
         messageDto.setMessageId(lastMessageId);
         messageDto.setNew(true);
+        messageDto.setReactorCount(new HashMap<>());
         Instant now = Instant.now();
         messageDto.setCreatedAt(now);
         messageDto.setSenderId(userId);
@@ -95,12 +97,6 @@ public class MessageService {
                 messageDto.setRevoked(messageDtoReply.getRevoked());
             }
         }
-        String title = conversationDto.getUserConversations().size() == 2 ?
-                conversationDto.getUserConversations()
-                .stream()
-                .filter(userConversationDto -> userConversationDto.getUserId().equals(userId))
-                .toList().getFirst().getFullName(): conversationDto.getTitle();
-        conversationDto.setTitle(title);
         conversationDto.getUserConversations()
                 .stream()
                 .filter(userConversationDto -> !userConversationDto
@@ -158,9 +154,13 @@ public class MessageService {
         messageDto.setRevoked(true);
         ConversationDto conversationDto = conversationImp.getConversations(List
                 .of(messageDto.getConversationId())).getFirst();
-        conversationDto.setLastMessageText(null);
-        conversationDto.setLastMessageRevoked(true);
-        conversationImp.putConversation(conversationDto);
+        if(conversationDto.getLastMessageId().equals(messageDto.getMessageId())) {
+            conversationDto.setLastMessageText(null);
+            conversationDto.setLastMessageRevoked(true);
+            conversationImp.putConversation(conversationDto);
+            websocketService.sendMessageToConversation(userId, clientMsgId, WebsocketEventType.UPDATE_CONVERSATION,
+                    conversationDto.getConversationId(), messageDto.getMessageId());
+        }
         messageCache.putMessageCache(messageDto.getMessageId(), messageDto);
         websocketService.sendMessageToConversation(userId, clientMsgId, WebsocketEventType.REVOKE_MESSAGE,
                 conversationDto.getConversationId(), messageDto.getMessageId());

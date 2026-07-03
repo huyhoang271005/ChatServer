@@ -42,9 +42,6 @@ public class Conversation extends BaseEntity {
     @Column(name = "conversation_avatar_url", length = 500)
     String conversationAvatarUrl;
 
-    @Column(name = "conversation_avatar_id", length = 125)
-    String conversationAvatarId;
-
     @Column(name = "is_group")
     boolean group;
 

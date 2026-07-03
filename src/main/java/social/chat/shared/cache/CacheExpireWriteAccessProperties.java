@@ -18,4 +18,5 @@ public class CacheExpireWriteAccessProperties {
     Duration message;
     Duration conversation;
     Duration reactor;
+    Duration userPresence;
 }

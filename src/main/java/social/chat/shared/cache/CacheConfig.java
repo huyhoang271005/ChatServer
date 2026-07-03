@@ -96,8 +96,16 @@ public class CacheConfig {
                         .build()
         );
 
+        CaffeineCache userPresenceCache = new CaffeineCache(
+                GlobalParamName.CacheName.USER_PRESENCE,
+                Caffeine.newBuilder()
+                        .expireAfterAccess(cacheExpireWriteAccessProperties.getUserPresence())
+                        .maximumSize(1000)
+                        .build()
+        );
+
         cacheManager.setCaches(List.of(sessionCache, userCache, roleCache, userShortProfile,
-                userFcmCache, conversationCache, messageCache, reactorCache));
+                userFcmCache, conversationCache, messageCache, reactorCache, userPresenceCache));
         return cacheManager;
     }
 }

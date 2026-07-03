@@ -19,15 +19,14 @@ import java.util.Map;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class MessageDto {
-    @NotNull(groups = {GroupValidMessage.onlyMessageId.class})
+    @NotNull(groups = {GroupValidMessage.onlyMessageId.class}, message = "messageId not be null")
     Long messageId;
-    @NotNull(groups = {GroupValidMessage.onlyConversationId.class})
+    @NotNull(groups = {GroupValidMessage.onlyConversationId.class}, message = "conversationId not be null")
     Long conversationId;
-    @NotBlank
+    @NotBlank(message = "Message text not be null")
     @Size(min = 2, max = 1000, message = GlobalMessage.Error.TEXT_OVERFLOW)
     String text;
-    String fileId;
-    @NotNull
+    @NotNull(message = "messageType not be null")
     MessageType type;
     Boolean revoked;
     Long senderId;

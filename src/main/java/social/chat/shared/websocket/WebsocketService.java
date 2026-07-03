@@ -67,9 +67,13 @@ public class WebsocketService {
         }
         boolean conversationNotNull = type == WebsocketEventType.UPDATE_CONVERSATION  ||
                 type == WebsocketEventType.TYPING || type == WebsocketEventType.UNTYPING ;
-        userIds.forEach(userId ->
-                sendMessageToUser(myUserId, userId, clientMsgId, type,  conversationNotNull ?
-                        conversationDto : null, messageDto));
+        userIds.forEach(userId -> {
+            var data = conversationNotNull ? conversationDto : messageDto;
+            if(type == WebsocketEventType.TYPING || type == WebsocketEventType.UNTYPING) {
+                data = conversationId;
+            }
+            sendMessageToUser(myUserId, userId, clientMsgId, type, data);
+        });
         log.info("List user id need send message {}", userIds);
         //Send notification
         if(type == WebsocketEventType.NEW_MESSAGE || type == WebsocketEventType.REVOKE_MESSAGE) {
@@ -96,7 +100,8 @@ public class WebsocketService {
                 String image = null;
                 String body = "REVOKE_MESSAGE";
                 if(messageDto == null) return;
-                if(messageDto.getType() != null) {
+                if(messageDto.getType() != null && (messageDto.getRevoked() == null ||
+                        !messageDto.getRevoked())) {
                     image = messageDto.getType() ==  MessageType.IMAGE ?
                             messageDto.getText() : null;
                     body = switch (messageDto.getType()) {
@@ -113,6 +118,7 @@ public class WebsocketService {
                         .addAllTokens(fcmTokens)
                         .putData("body", body)
                         .putData("link", link)
+                        .putData("senderId", myUserId.toString())
                         .putData("messageType", messageDto.getType().name())
                         .putData("tag", conversationId.toString());
                 if(icon != null) {
@@ -130,7 +136,7 @@ public class WebsocketService {
                 }
                 try {
                     FirebaseMessaging.getInstance().sendEachForMulticast(multicastMessageBuild.build());
-                    log.info("Sent fcm message");
+                    log.info("Sent {} fcm message", fcmTokens.size());
                 } catch (FirebaseMessagingException e) {
                     log.error(e.getMessage());
                 }
@@ -138,24 +144,11 @@ public class WebsocketService {
         }
     }
 
-    public void sendMessageToUser(Long myUserId, Long toUser, String clientMsgId, WebsocketEventType type,
-                                  ConversationDto conversationDto, MessageDto messageDto) {
-        DataDto<?> dataDto;
-        if(conversationDto != null) {
-            if(type == WebsocketEventType.TYPING || type == WebsocketEventType.UNTYPING) {
-                dataDto = new DataDto<>(type, myUserId, clientMsgId, conversationDto.getConversationId());
-            }
-            else {
-                dataDto = new DataDto<>(type, myUserId, clientMsgId, conversationDto);
-            }
-        } else if(messageDto != null) {
-            dataDto = new DataDto<>(type, myUserId, clientMsgId, messageDto);
-        }
-        else {
-            return;
-        }
-        String topicSubscribe = websocketProperties.getBrokerPaths()
-                .getFirst() + "/users." + toUser;
-        simpMessagingTemplate.convertAndSend(topicSubscribe, dataDto);
+    public<T> void sendMessageToUser(Long myUserId, Long toUser, String clientMsgId, WebsocketEventType type,
+                                  T data) {
+        if(data == null) return;
+        DataDto<T> dataDto = new DataDto<>(type, myUserId, clientMsgId, data);
+        String topicSubscribe = "%s/stream".formatted(websocketProperties.getUserPath());
+        simpMessagingTemplate.convertAndSendToUser(toUser.toString(), topicSubscribe, dataDto);
     }
 }

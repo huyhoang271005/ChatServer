@@ -16,7 +16,12 @@ public class ConversationListenedEvent {
     ConversationImp conversationImp;
 
     @ApplicationModuleListener
-    public void saveConversation(RegisterSaveConversationEvent event){
+    public void saveBatchConversation(SaveBatchConversationEvent event){
         conversationImp.saveBatchPendingConversations();
+    }
+
+    @ApplicationModuleListener
+    public void saveAllConversation(SaveAllConversationEvent event){
+        conversationImp.saveAllPendingConversations();
     }
 }

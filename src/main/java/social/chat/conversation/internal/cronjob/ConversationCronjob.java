@@ -6,7 +6,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import social.chat.conversation.api.event.RegisterSaveConversationEvent;
+import social.chat.conversation.api.event.SaveBatchConversationEvent;
 
 @Component
 @RequiredArgsConstructor
@@ -16,6 +16,6 @@ public class ConversationCronjob {
 
     @Scheduled(fixedDelayString = "#{@cacheExpireWriteAccessProperties.conversation.toMillis() / 2}")
     public void saveConversationCron(){
-        applicationEventPublisher.publishEvent(new RegisterSaveConversationEvent());
+        applicationEventPublisher.publishEvent(new SaveBatchConversationEvent());
     }
 }

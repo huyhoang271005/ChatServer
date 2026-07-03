@@ -116,9 +116,8 @@ public class MessageCache implements MessageCacheImp {
             log.info("No messages need save");
             return;
         }
-        safeCacheExecutor.saveDataWithIds(messageIds, messageIdsPending, longs ->
-                getMessagesCache(longs)
-                        .orElse(List.of()), messageDtos -> {
+        safeCacheExecutor.saveDataWithIds(messageIds, messageIdsPending,
+                this::getMessagesCache, messageDtos -> {
             Integer dataSave = messageRepository.saveAll(messageDtos
                     .stream()
                     .map(messageMapper::toMessage)

@@ -136,13 +136,12 @@ public class SafeCacheExecutor {
     }
 
     public<T> void saveDataWithIds(Collection<Long> idsNeedSave, Set<Long> pendingIds,
-                                Function<Collection<Long>, List<T>> getCache, Consumer<List<T>> consumer) {
+                                Function<Collection<Long>, Optional<List<T>>> getCache, Consumer<List<T>> consumer) {
         if(idsNeedSave == null || idsNeedSave.isEmpty()){
             return;
         }
         try {
-            List<T> dtos = getCache.apply(idsNeedSave);
-            consumer.accept(dtos);
+            getCache.apply(idsNeedSave).ifPresent(consumer);
         } catch (Exception ex) {
             log.error(ex.toString());
             pendingIds.addAll(idsNeedSave);

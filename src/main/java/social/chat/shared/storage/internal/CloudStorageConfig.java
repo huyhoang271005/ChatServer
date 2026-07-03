@@ -1,0 +1,44 @@
+package social.chat.shared.storage.internal;
+
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+
+import java.net.URI;
+
+@Configuration
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class CloudStorageConfig {
+    CloudStorageProperties cloudStorageProperties;
+
+
+    @Bean
+    public S3Presigner s3Presigner() {
+        return S3Presigner.builder()
+                .endpointOverride(URI.create(cloudStorageProperties.getEndpoint()))
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(cloudStorageProperties.getAccessKey(),
+                                cloudStorageProperties.getSecretKey())))
+                .region(Region.US_EAST_1)
+                .build();
+    }
+
+    @Bean
+    public S3Client s3Client() {
+        return S3Client.builder()
+                .endpointOverride(URI.create(cloudStorageProperties.getEndpoint()))
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(cloudStorageProperties.getAccessKey(),
+                                cloudStorageProperties.getSecretKey())))
+                .region(Region.US_EAST_1)
+                .build();
+    }
+}

@@ -38,9 +38,6 @@ public class Profile extends BaseEntity {
     @Column(name = "username", length = 125)
     String username;
 
-    @Column(name = "avatar_id", length = 125)
-    String avatarId;
-
     @Column(name = "avatar_url", length = 500)
     String avatarUrl;
 

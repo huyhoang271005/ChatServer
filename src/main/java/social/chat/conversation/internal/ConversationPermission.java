@@ -4,6 +4,6 @@ public enum ConversationPermission {
     ADD_MEMBER,
     REMOVE_MEMBER,
     UPDATE_CONVERSATION,
-    CLOSE_CONVERSATION,
+    DISBAND_CONVERSATION,
     CHANGE_ROLE_MEMBER
 }
