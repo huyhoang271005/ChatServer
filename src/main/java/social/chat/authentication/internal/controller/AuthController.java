@@ -32,7 +32,7 @@ public class AuthController {
     SessionMapper sessionMapper;
 
     private ResponseEntity<Response<?>> createCookie(Response<TokenDto> response) {
-        String cookieDevice = response.data().refreshToken() != null ?
+        String cookieDevice = response.data().deviceId() != null ?
                 authenticationImp.getResponseCookie(GlobalParamName.Cookie.DEVICE_ID,
                         response.data().deviceId().toString(), Duration.ofDays(3650))
                 .toString(): null;

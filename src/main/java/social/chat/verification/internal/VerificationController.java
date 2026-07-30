@@ -26,13 +26,18 @@ public class VerificationController {
     AuthenticationImp authenticationImp;
 
     private ResponseEntity<Response<?>> returnCookie(Response<?> response) {
-        var cookie = authenticationImp.getResponseCookie(GlobalParamName.Cookie.DEVICE_ID,
-                String.valueOf(response.data()),
-                Duration.ofDays(3650));
-        response = Response.success(response.message(), response.data());
+        var cookie = response.data() != null ?
+                authenticationImp.getResponseCookie(GlobalParamName.Cookie.DEVICE_ID,
+                        response.data().toString(),
+                        Duration.ofDays(3650)) : null;
+        response = Response.success(response.message(), response.data(), response.args());
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .headers(httpHeaders -> {
+                    if(cookie != null) {
+                        httpHeaders.add(HttpHeaders.SET_COOKIE, cookie.toString());
+                    }
+                })
                 .body(response);
     }
 

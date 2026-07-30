@@ -153,10 +153,10 @@ public class ConversationService {
         );
     }
 
-    public Response<ResponseList<ConversationDto>> getConversations(Long myId, Long lastId, Pageable pageable){
-        Slice<Long> conversationIdSlice = conversationRepository.findConversationIdsByUserId(myId, lastId, pageable);
+    public Response<ResponseList<ConversationDto>> getConversations(Long myId, Long lastId, String title, Pageable pageable){
+        Slice<Long> conversationIdSlice = conversationRepository.findConversationIdsByUserId(myId, lastId, title, pageable);
         List<ConversationDto> conversationDtos = conversationCache.getConversationsByUserId(conversationIdSlice
-                .getContent(), myId);
+                .getContent(), myId, title);
         return Response.success(
                 GlobalMessage.Success.GET,
                 new ResponseList<>(conversationDtos, conversationIdSlice.hasNext())

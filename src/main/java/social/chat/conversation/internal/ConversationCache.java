@@ -48,41 +48,47 @@ public class ConversationCache {
                             .stream()
                             .map(conversationMapper::toConversationDto)
                             .toList();
-                    List<Long> userIds = conversationDtos
-                            .stream()
-                            .flatMap(conversationDto -> conversationDto.getUserConversations().stream())
-                            .map(UserConversationDto::getUserId)
-                            .distinct()
-                            .toList();
-                    Map<Long, ProfileInfo> profileInfos = profileImp.getShortProfiles(userIds)
-                            .stream()
-                            .collect(Collectors.toMap(ProfileInfo::userId, Function.identity()));
-                    conversationDtos.stream()
-                            .flatMap(conversationDto -> conversationDto.getUserConversations().stream())
-                            .forEach(userConversationDto -> {
-                                ProfileInfo profileInfo = profileInfos.get(userConversationDto.getUserId());
-                                userConversationDto.setUsername(profileInfo.username());
-                                userConversationDto.setAvatarUrl(profileInfo.avatarUrl());
-                                userConversationDto.setFullName(profileInfo.fullName());
-                            });
                     log.info("Added cache for {} conversations", missIds.size());
                     return conversationDtos;
                 }, ConversationDto::getConversationId
         );
     }
 
-    public List<ConversationDto> getConversationsByUserId(Collection<Long> conversationIds, Long userId) {
+    public List<ConversationDto> getConversationsByUserId(Collection<Long> conversationIds,
+                                                          Long userId, String title) {
         Collection<Long> finalConversationsIds = safeCacheExecutor.getIdsByFKId(
                 conversationIds, conversationPending, GlobalParamName.CacheName.CONVERSATION,
                 ConversationDto.class, conversationDto -> conversationDto
                         .getUserConversations()
                         .stream().anyMatch(userConversationDto ->
-                                userConversationDto.getUserId().equals(userId))
+                                userConversationDto.getUserId().equals(userId) && (title == null ||
+                                        conversationDto.isGroup() && conversationDto.getTitle().contains(title)))
         );
-        return getConversationsCache(finalConversationsIds.stream().toList())
+        List<ConversationDto> conversationDtos = getConversationsCache(finalConversationsIds.stream().toList())
                 .orElse(Collections.emptyList())
                 .stream()
                 .sorted(Comparator.comparing(ConversationDto::getUpdatedAt).reversed())
+                .toList();
+        List<Long> userIds = conversationDtos
+                .stream()
+                .flatMap(conversationDto -> conversationDto.getUserConversations().stream())
+                .map(UserConversationDto::getUserId)
+                .distinct().toList();
+        Map<Long, ProfileInfo> profileInfos = profileImp.getShortProfiles(userIds)
+                .stream()
+                .collect(Collectors.toMap(ProfileInfo::userId, Function.identity()));
+        return conversationDtos
+                .stream()
+                .peek(conversationDto ->
+                        conversationDto.getUserConversations()
+                        .forEach(userConversationDto -> {
+                            ProfileInfo profileInfo = profileInfos.get(userConversationDto.getUserId());
+                            userConversationDto.setUsername(profileInfo.username());
+                            userConversationDto.setAvatarUrl(profileInfo.avatarUrl());
+                            userConversationDto.setFullName(profileInfo.fullName());
+                        }))
+                .filter(conversationDto -> title == null ||
+                        conversationDto.getTitle() == null || conversationDto.getTitle().contains(title))
                 .toList();
 
     }

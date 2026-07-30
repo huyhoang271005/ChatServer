@@ -16,6 +16,8 @@ import social.chat.conversation.api.dto.UserConversationDto;
 import social.chat.message.api.MessageCacheImp;
 import social.chat.message.api.dto.MessageDto;
 import social.chat.message.api.dto.MessageType;
+import social.chat.profile.api.ProfileImp;
+import social.chat.profile.api.dto.ProfileInfo;
 import social.chat.shared.common.ApplicationProperties;
 import social.chat.shared.common.GlobalMessage;
 import social.chat.shared.common.ResponseTranslationAdvice;
@@ -35,6 +37,7 @@ public class WebsocketService {
     ResponseTranslationAdvice responseTranslationAdvice;
     ConversationImp conversationImp;
     MessageCacheImp messageCacheImp;
+    ProfileImp profileImp;
 
     public void sendMessageToConversation(Long myUserId, String clientMsgId, WebsocketEventType type,
                                           Long conversationId, Long messageId) {
@@ -77,69 +80,72 @@ public class WebsocketService {
         log.info("List user id need send message {}", userIds);
         //Send notification
         if(type == WebsocketEventType.NEW_MESSAGE || type == WebsocketEventType.REVOKE_MESSAGE) {
-            List<String> fcmTokens = fcmTokenImp.getFcmTokenByUserIds(userIds
-                    .stream()
-                    .filter(userId -> !userId.equals(myUserId))
-                    .toList());
-            Optional<UserConversationDto> myProfileInfo = userConversationDtos
-                    .stream()
-                    .filter(userConversationDto1 -> userConversationDto1
-                            .getUserId().equals(myUserId))
-                    .findAny();
-            String myAvatar = myProfileInfo
-                    .map(UserConversationDto::getAvatarUrl)
-                    .orElseGet(applicationProperties::getUnknowUserUrl);
+            sendFcmNotification(userIds, myUserId, conversationDto, messageDto);
+        }
+    }
 
-            if(fcmTokens != null && !fcmTokens.isEmpty()) {
-                log.info("Found fcm token start sending message");
-                String link = "%s/#home?conversationId=%s"
-                        .formatted(applicationProperties.getFrontendUrl(),
-                                conversationDto.getConversationId());
-                String icon = conversationDto.isGroup() ?
-                        conversationDto.getConversationAvatarUrl() : myAvatar;
-                String image = null;
-                String body = "REVOKE_MESSAGE";
-                if(messageDto == null) return;
-                if(messageDto.getType() != null && (messageDto.getRevoked() == null ||
-                        !messageDto.getRevoked())) {
-                    image = messageDto.getType() ==  MessageType.IMAGE ?
-                            messageDto.getText() : null;
-                    body = switch (messageDto.getType()) {
-                        case IMAGE -> responseTranslationAdvice.getString(GlobalMessage.Message.IMAGE);
-                        case VIDEO -> responseTranslationAdvice.getString(GlobalMessage.Message.VIDEO);
-                        case FILE -> responseTranslationAdvice.getString(GlobalMessage.Message.FILE);
-                        case AUDIO -> responseTranslationAdvice.getString(GlobalMessage.Message.AUDIO);
-                        default -> messageDto.getText();
-                    };
-                }
-                String title = conversationDto.isGroup() ? conversationDto.getTitle() :
-                        myProfileInfo.map(UserConversationDto::getFullName).orElse(null);
-                var multicastMessageBuild = MulticastMessage.builder()
-                        .addAllTokens(fcmTokens)
-                        .putData("body", body)
-                        .putData("link", link)
-                        .putData("senderId", myUserId.toString())
-                        .putData("messageType", messageDto.getType().name())
-                        .putData("tag", conversationId.toString());
-                if(icon != null) {
-                    multicastMessageBuild.putData("icon", icon);
-                }
-                if(title != null) {
-                    multicastMessageBuild.putData("title", conversationDto.getTitle());
-                }
-                if(image != null) {
-                    multicastMessageBuild.putData("image", image);
-                }
-                if(messageDto.getMessageId() != null) {
-                    multicastMessageBuild.putData("messageId", messageDto
-                            .getMessageId().toString());
-                }
-                try {
-                    FirebaseMessaging.getInstance().sendEachForMulticast(multicastMessageBuild.build());
-                    log.info("Sent {} fcm message", fcmTokens.size());
-                } catch (FirebaseMessagingException e) {
-                    log.error(e.getMessage());
-                }
+    private void sendFcmNotification(List<Long> userIds, Long myUserId, ConversationDto conversationDto,
+                                     MessageDto messageDto) {
+        List<String> fcmTokens = fcmTokenImp.getFcmTokenByUserIds(userIds
+                .stream()
+                .filter(userId -> !userId.equals(myUserId))
+                .toList());
+        Optional<ProfileInfo> myProfileInfo = profileImp
+                .getShortProfiles(List.of(myUserId))
+                .stream().findAny();
+        String myAvatar = myProfileInfo
+                .map(ProfileInfo::avatarUrl)
+                .orElseGet(applicationProperties::getUnknowUserUrl);
+
+        if(fcmTokens != null && !fcmTokens.isEmpty()) {
+            log.info("Found fcm token start sending message");
+            String link = "%s/#home?conversationId=%s"
+                    .formatted(applicationProperties.getFrontendUrl(),
+                            conversationDto.getConversationId());
+            String icon = conversationDto.isGroup() ?
+                    conversationDto.getConversationAvatarUrl() : myAvatar;
+            String image = null;
+            String body = "REVOKE_MESSAGE";
+            if(messageDto == null) return;
+            if(messageDto.getType() != null && (messageDto.getRevoked() == null ||
+                    !messageDto.getRevoked())) {
+                image = messageDto.getType() ==  MessageType.IMAGE ?
+                        messageDto.getText() : null;
+                body = switch (messageDto.getType()) {
+                    case IMAGE -> responseTranslationAdvice.getString(GlobalMessage.Message.IMAGE);
+                    case VIDEO -> responseTranslationAdvice.getString(GlobalMessage.Message.VIDEO);
+                    case FILE -> responseTranslationAdvice.getString(GlobalMessage.Message.FILE);
+                    case AUDIO -> responseTranslationAdvice.getString(GlobalMessage.Message.AUDIO);
+                    default -> messageDto.getText();
+                };
+            }
+            String title = conversationDto.isGroup() ? conversationDto.getTitle() :
+                    myProfileInfo.map(ProfileInfo::fullName).orElse(null);
+            var multicastMessageBuild = MulticastMessage.builder()
+                    .addAllTokens(fcmTokens)
+                    .putData("body", body)
+                    .putData("link", link)
+                    .putData("senderId", myUserId.toString())
+                    .putData("messageType", messageDto.getType().name())
+                    .putData("tag", conversationDto.getConversationId().toString());
+            if(icon != null) {
+                multicastMessageBuild.putData("icon", icon);
+            }
+            if(title != null) {
+                multicastMessageBuild.putData("title", conversationDto.getTitle());
+            }
+            if(image != null) {
+                multicastMessageBuild.putData("image", image);
+            }
+            if(messageDto.getMessageId() != null) {
+                multicastMessageBuild.putData("messageId", messageDto
+                        .getMessageId().toString());
+            }
+            try {
+                FirebaseMessaging.getInstance().sendEachForMulticast(multicastMessageBuild.build());
+                log.info("Sent {} fcm message", fcmTokens.size());
+            } catch (FirebaseMessagingException e) {
+                log.error(e.getMessage());
             }
         }
     }

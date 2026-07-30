@@ -22,10 +22,15 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
             from UserConversation uc
             join uc.conversation c
             where uc.userId = :userId
-            and :lastId is null or c.conversationId < :lastId
+            and (:lastId is null or c.conversationId < :lastId)
+            and (
+                        :title is null
+                        or (c.group = true and c.title like concat(:title, '%'))
+                        or (c.group = false)
+                )
             order by c.updatedAt desc
             """)
-    Slice<Long> findConversationIdsByUserId(Long userId, Long lastId, Pageable pageable);
+    Slice<Long> findConversationIdsByUserId(Long userId, Long lastId, String title, Pageable pageable);
 
     @Query("""
     select count(c) > 0 from Conversation c where c in (

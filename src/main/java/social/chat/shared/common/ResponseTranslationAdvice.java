@@ -45,10 +45,9 @@ public class ResponseTranslationAdvice implements ResponseBodyAdvice<Object> {
                                             @NonNull ServerHttpRequest request,
                                             @NonNull ServerHttpResponse response) {
         if (body instanceof Response<?>(boolean success, String currentMessage, Object updatedData, Object[] args)) {
-            String translatedMessage = currentMessage;
 
             if (currentMessage != null && !currentMessage.isEmpty()) {
-                translatedMessage = getString(currentMessage, args);
+                currentMessage = getString(currentMessage, args);
             }
 
             if (updatedData instanceof List<?> list) {
@@ -59,9 +58,9 @@ public class ResponseTranslationAdvice implements ResponseBodyAdvice<Object> {
 
             return new Response<>(
                     success,
-                    translatedMessage,
+                    currentMessage,
                     updatedData,
-                    args
+                    null
             );
         }
         return body;

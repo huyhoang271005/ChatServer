@@ -8,6 +8,7 @@ import org.apache.tika.Tika;
 import org.springframework.stereotype.Service;
 import social.chat.shared.common.GlobalMessage;
 import social.chat.shared.dto.Response;
+import social.chat.shared.exception.UnprocessableException;
 import social.chat.shared.storage.api.CloudStorageDto;
 import social.chat.shared.storage.api.CloudStorageImp;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -33,6 +34,10 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CloudStorageService implements CloudStorageImp {
     S3Client s3Client;
+    CloudStorageProperties cloudStorageProperties;
+    S3Presigner s3Presigner;
+    Tika tika = new Tika();
+    static DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM");
 
     private String getUniqueKeyFromUrl(String url) {
         try {
@@ -90,22 +95,21 @@ public class CloudStorageService implements CloudStorageImp {
         }
     }
 
-    CloudStorageProperties cloudStorageProperties;
-    S3Presigner s3Presigner;
-    Tika tika = new Tika();
-    static DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM");
-
-    public Response<List<CloudStorageDto>> generateSignatureUrls(List<String> fileNames) {
+    public Response<List<CloudStorageDto>> generateSignatureUrls(List<String> fileNames, UploadType uploadType,
+                                                                 Long targetId) {
+        if(targetId == null) {
+            throw new UnprocessableException("TargetId must not be null");
+        }
         return Response.success(
                 GlobalMessage.Success.CREATED,
                 fileNames.stream()
                         .filter(Objects::nonNull)
-                        .map(this::generateUploadUrl)
+                        .map(s -> generateUploadUrl(s, uploadType, targetId))
                         .toList()
         );
     }
 
-    private CloudStorageDto generateUploadUrl(String fileName) {
+    private CloudStorageDto generateUploadUrl(String fileName, UploadType uploadType, Long targetId) {
         String ext = getFileExtension(fileName);
         String strictContentType = tika.detect("file." + ext);
 
@@ -115,18 +119,9 @@ public class CloudStorageService implements CloudStorageImp {
             strictContentType = "audio/webm";
         }
 
-        String category = "documents";
-        if (strictContentType.startsWith("image/")) {
-            category = "images";
-        } else if (strictContentType.startsWith("video/")) {
-            category = "videos";
-        } else if (strictContentType.startsWith("audio/")) {
-            category = "voices";
-        }
-
         String datePath = LocalDate.now().format(DATE_FORMATTER);
 
-        String uniqueKey = "%s/%s/%s.%s".formatted(category, datePath, UUID.randomUUID(), ext);
+        String uniqueKey = "%s/%s/%s/%s.%s".formatted(uploadType, targetId, datePath, UUID.randomUUID(), ext);
         String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
                 .replace("+", "%20");
         String contentDisposition = "inline; filename=\"%s\"; filename*=UTF-8''%s"

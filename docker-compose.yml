@@ -1,6 +1,6 @@
 services:
 
-  sql-server:
+  database:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: chat-database
     environment:
@@ -15,6 +15,21 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    restart: unless-stopped
+  app:
+    build: .
+    container_name: chat-server
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      - database
     restart: unless-stopped
 volumes:
   sql_data:

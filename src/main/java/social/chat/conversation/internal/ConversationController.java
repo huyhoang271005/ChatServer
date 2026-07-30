@@ -45,9 +45,10 @@ public class ConversationController {
     @GetMapping
     public ResponseEntity<Response<?>> getConversation(@AuthenticationPrincipal Jwt jwt,
                                                        @RequestParam(required = false) Long lastId,
+                                                       @RequestParam(required = false) String title,
                                                        Pageable pageable) {
         return ResponseEntity.ok(conversationService.getConversations(Long.parseLong(jwt.getSubject()),
-                lastId, pageable));
+                lastId, title, pageable));
     }
 
     @PostMapping("member")

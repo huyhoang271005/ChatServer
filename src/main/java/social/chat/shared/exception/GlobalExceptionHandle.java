@@ -116,7 +116,7 @@ public class GlobalExceptionHandle {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Response<List<String>>> handleException(Exception exception){
         String message = exception.getMessage();
-        log.error(responseTranslationAdvice.getString(message));
+        log.error(responseTranslationAdvice.getString(message), exception);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                 new Response<>(
                         false,
