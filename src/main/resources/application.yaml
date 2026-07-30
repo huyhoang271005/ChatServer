@@ -1,6 +1,9 @@
 server:
   shutdown: graceful
+
 spring:
+  profiles:
+    active: dev
   lifecycle:
     timeout-per-shutdown-phase: 1m
   config:
@@ -18,20 +21,6 @@ spring:
     basename: messages/profile/profile, messages/authentication/authentication, messages/global/global, messages/authorization/authorization, messages/verification/verification, messages/user/user, messages/conversation/conversation, messages/message/message
     encoding: UTF-8
     fallback-to-system-locale: false
-  jpa:
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        default_batch_fetch_size: ${DEFAULT_BATCH_FETCH_SIZE}
-        order_updates: true
-        order_inserts: true
-        jdbc:
-          batch_size: ${BATCH_SIZE}
-  datasource:
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
   security:
     oauth2:
       resourceserver:
@@ -60,6 +49,7 @@ spring:
   modulith:
     events:
       completion-mode: delete
+
 app:
   websocket:
     endpoint: "/ws"
@@ -68,13 +58,12 @@ app:
     app-prefixes:
       - "/app"
     user-destination-prefix: "/user"
+
 yitter:
   worker-id: 1
   worker-id-bit-length: 6
   seq-bit-length: 6
-logging:
-  level:
-    org.springframework.security: DEBUG
+
 cloudflare:
   r2:
     endpoint: ${CLOUDFLARE_R2_ENDPOINT}
@@ -82,6 +71,7 @@ cloudflare:
     secret-key: ${CLOUDFLARE_R2_SECRET_KEY}
     bucket-name: ${CLOUDFLARE_R2_BUCKET_NAME}
     bucket-url: ${CLOUDFLARE_R2_BUCKET_URL}
+
 cache:
   expire-after-access:
     message: ${MESSAGE_EXPIRE_AFTER_ACCESS}
