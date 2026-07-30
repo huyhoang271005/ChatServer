@@ -1,11 +1,18 @@
-# 💬 SocialChat - Real-time Social & Chat Platform Backend
+# 💬 PingMe - Backend Ứng dụng Nhắn tin Nội bộ Real-time
 
+[![Tiếng Việt](https://img.shields.io/badge/Ngôn%20ngữ-Tiếng%20Việt-red.svg)](README.md)
+[![English](https://img.shields.io/badge/Language-English-blue.svg)](README_EN.md)
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Spring Modulith](https://img.shields.io/badge/Spring%20Modulith-1.4-blue.svg)](https://spring.io/projects/spring-modulith)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**SocialChat** là hệ thống Backend cho ứng dụng nhắn tin và mạng xã hội thời gian thực (Real-time Chat & Social Platform). Dự án được thiết kế theo kiến trúc **Modular Monolith** với **Spring Modulith**, tận dụng tối đa sức mạnh của **Java 21 Virtual Threads**, **Spring Boot 3.5**, **WebSocket STOMP**, và **Cloudflare R2**.
+**PingMe** là hệ thống Backend cho **ứng dụng nhắn tin nội bộ thời gian thực** (Internal Real-time Chat Application). Tên ứng dụng được cấu hình linh hoạt thông qua biến môi trường (`APP_NAME`). Dự án được thiết kế theo kiến trúc **Modular Monolith** với **Spring Modulith**, tận dụng tối đa sức mạnh của **Java 21 Virtual Threads**, **Spring Boot 3.5**, **WebSocket STOMP**, và **Cloudflare R2**.
+
+---
+
+## 🎯 Mục đích dự án
+Hệ thống được phát triển với mục đích cung cấp giải pháp trao đổi thông tin, giao tiếp thời gian thực cho tổ chức/nhóm làm việc nội bộ, đảm bảo tính bảo mật cao, khả năng quản lý phân quyền thành viên chặt chẽ, chia sẻ tệp tin an toàn và hiệu năng phản hồi tức thì.
 
 ---
 
@@ -32,7 +39,7 @@
 
 ### ☁️ 4. Lưu trữ đám mây & Đa ngôn ngữ (Cloud Storage & i18n)
 - **Cloudflare R2 / AWS S3 Integration**: Lưu trữ tệp tin, hình ảnh, video với kiểm tra định dạng an toàn qua **Apache Tika**.
-- **Đa ngôn ngữ (i18n)**: Phản hồi thông báo lỗi và kết quả API theo ngôn ngữ người dùng (Ví dụ: Tiếng Việt, Tiếng Anh).
+- **Đa ngôn ngữ (i18n)**: Mặc định phản hồi bằng **Tiếng Anh**, hỗ trợ **Tiếng Việt** đầy đủ khi client yêu cầu qua header `Accept-Language`.
 - **Swagger / Open API Document**: Tự động sinh tài liệu API và giao diện thử nghiệm tương tác.
 
 ---
@@ -79,9 +86,8 @@ src/main/java/social/chat/
 ## 🚀 Hướng dẫn Cài đặt & Chạy Dự án
 
 ### 📋 1. Yêu cầu hệ thống
-- **Java Development Kit (JDK)**: Phiên bản 21 trở lên.
-- **Maven**: Phiên bản 3.9+ (hoặc dùng `mvnw` đi kèm dự án).
-- **Docker & Docker Compose** (để chạy database SQL Server).
+- **Docker & Docker Compose** (khuyên dùng để chạy cả Database và App Server).
+- **Java Development Kit (JDK 21+)** & **Maven 3.9+** (nếu chọn chạy trực tiếp không qua Docker).
 
 ---
 
@@ -100,92 +106,35 @@ openssl rsa -in src/main/resources/privateKey.pem -pubout -out src/main/resource
 ---
 
 ### ⚙️ 3. Cấu hình Biến môi trường (`.env`)
-Tạo file `.env` tại thư mục gốc của dự án và điền các thông tin cấu hình cần thiết:
-
-```env
-APP_NAME=SocialChat
-FRONTEND_URL=http://localhost:3000
-BACKEND_URL=http://localhost:8080
-UNKNOW_USER_URL=http://localhost:3000/default-avatar.png
-APP_ICON=favicon.ico
-
-# Database Configuration (MSSQL)
-DATABASE_URL=jdbc:sqlserver://localhost:1433;databaseName=SocialChatDB;encrypt=true;trustServerCertificate=true;
-DATABASE_USERNAME=sa
-DATABASE_PASSWORD=YourStrongPassword123!
-DEFAULT_BATCH_FETCH_SIZE=20
-BATCH_SIZE=30
-
-# JWT Expiry Configuration (Seconds)
-JWT_ACCESS_TOKEN_EXPIRE=900
-JWT_REFRESH_TOKEN_EXPIRE=604800
-
-# Mail Configuration
-MAIL_HOST=smtp.gmail.com
-MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=your-app-password
-MAIL_FROM_NAME=SocialChat Support
-
-# Cloudflare R2 Storage Configuration
-CLOUDFLARE_R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
-CLOUDFLARE_R2_ACCESS_KEY=<your-access-key>
-CLOUDFLARE_R2_SECRET_KEY=<your-secret-key>
-CLOUDFLARE_R2_BUCKET_NAME=social-chat-bucket
-CLOUDFLARE_R2_BUCKET_URL=https://pub-<id>.r2.dev
-
-# Cache Expiration (Seconds)
-MESSAGE_EXPIRE_AFTER_ACCESS=3600
-CONVERSATION_EXPIRE_AFTER_ACCESS=3600
-REACTOR_EXPIRE_AFTER_ACCESS=3600
-USER_PRESENCE_EXPIRE_AFTER_ACCESS=300
-
-# Cron Schedule Configurations
-CLEANUP_USER_CRON=0 0 2 * * ?
-DAYS_TO_KEEP_DELETED_USER=30
-UNBANNED_USER_CRON=0 0/15 * * * ?
-CLEANUP_ROLE_CRON=0 0 3 * * ?
-DAYS_TO_KEEP_DELETED_ROLE=30
-EXPIRED_VERIFICATION_CRON=0 0/10 * * * ?
-CLEANUP_VERIFICATION_CRON=0 0 4 * * ?
-VERIFICATION_TO_KEEP=7
-CLEANUP_DEVICE_CRON=0 0 1 * * ?
-REVOKED_SESSION_EXPIRED_CRON=0 0/30 * * * ?
-CLEANUP_SESSION_CRON=0 0 5 * * ?
-DAYS_TO_KEEP_SESSION_REVOKED=7
-CONVERSATIONS_BATCH_SIZE=50
-MESSAGES_BATCH_SIZE=100
-REACTORS_BATCH_SIZE=100
-```
+Tạo file `.env` tại thư mục gốc dự án (tham khảo mẫu `.env.example`).
 
 ---
 
-### 🐳 4. Khởi chạy Database với Docker Compose
-Chạy SQL Server 2022 bằng Docker:
+### 🏃 4. Khởi chạy Ứng dụng
+
+#### Cách 1: Khởi chạy toàn bộ hệ thống bằng Docker Compose (Khuyên dùng)
+File `Dockerfile` đã được thiết lập **Multi-stage build** (tự động build JAR với Maven và chạy trên JRE Alpine). `docker-compose.yml` quản lý 2 container: `chat-database` (SQL Server) và `chat-server` (Backend Application).
 
 ```bash
-docker-compose up -d
+# Build tự động và khởi chạy toàn bộ dịch vụ (Database + App Server)
+docker-compose up -d --build
 ```
 
----
+#### Cách 2: Khởi chạy thủ công (Development)
+Nếu bạn muốn chạy trực tiếp ứng dụng bằng Maven trên máy:
 
-### 🏃 5. Khởi chạy Ứng dụng Backend
+1. Khởi chạy riêng SQL Server Database:
+```bash
+docker-compose up -d database
+```
 
-#### Sử dụng Maven Wrapper:
+2. Build và khởi chạy ứng dụng:
 ```bash
 # Build dự án
 ./mvnw clean package -DskipTests
 
-# Khởi chạy
+# Khởi chạy Backend Server
 ./mvnw spring-boot:run
-```
-
-#### Hoặc Chạy bằng Docker:
-```bash
-# Build Docker image
-docker build -t social-chat-backend .
-
-# Chạy Docker container
-docker run -p 8080:8080 --env-file .env social-chat-backend
 ```
 
 ---
@@ -203,17 +152,6 @@ docker run -p 8080:8080 --env-file .env social-chat-backend
 Sau khi khởi chạy ứng dụng thành công, truy cập tài liệu API trực quan tại:
 - **Swagger UI**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 - **OpenAPI JSON**: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
-
----
-
-## 🤝 Đóng góp (Contributing)
-
-Mọi đóng góp nhằm hoàn thiện dự án đều được hoan nghênh:
-1. **Fork** dự án.
-2. Tạo nhánh tính năng mới (`git checkout -b feature/AmazingFeature`).
-3. Commit các thay đổi (`git commit -m 'Add some AmazingFeature'`).
-4. Push lên nhánh (`git push origin feature/AmazingFeature`).
-5. Mở một **Pull Request**.
 
 ---
 
