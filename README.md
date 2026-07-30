@@ -5,7 +5,6 @@
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Spring Modulith](https://img.shields.io/badge/Spring%20Modulith-1.4-blue.svg)](https://spring.io/projects/spring-modulith)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **PingMe** là hệ thống Backend cho **ứng dụng nhắn tin nội bộ thời gian thực** (Internal Real-time Chat Application). Tên ứng dụng được cấu hình linh hoạt thông qua biến môi trường (`APP_NAME`). Dự án được thiết kế theo kiến trúc **Modular Monolith** với **Spring Modulith**, tận dụng tối đa sức mạnh của **Java 21 Virtual Threads**, **Spring Boot 3.5**, **WebSocket STOMP**, và **Cloudflare R2**.
 
@@ -152,9 +151,3 @@ docker-compose up -d database
 Sau khi khởi chạy ứng dụng thành công, truy cập tài liệu API trực quan tại:
 - **Swagger UI**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 - **OpenAPI JSON**: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
-
----
-
-## 📝 Giấy phép (License)
-
-Dự án được phân phối dưới giấy phép **MIT License**. Xem thêm chi tiết tại file `LICENSE`.

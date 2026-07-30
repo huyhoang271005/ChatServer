@@ -5,7 +5,6 @@
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Spring Modulith](https://img.shields.io/badge/Spring%20Modulith-1.4-blue.svg)](https://spring.io/projects/spring-modulith)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **PingMe** is a high-performance backend system for real-time internal team/organization chat applications. The application name is dynamically configured via environment variables (`APP_NAME`). The project is designed using a **Modular Monolith** architecture with **Spring Modulith**, taking full advantage of **Java 21 Virtual Threads**, **Spring Boot 3.5**, **WebSocket STOMP**, and **Cloudflare R2**.
 
@@ -152,9 +151,3 @@ docker-compose up -d database
 Once the application is running, access the interactive API docs at:
 - **Swagger UI**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 - **OpenAPI JSON**: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
-
----
-
-## 📝 License
-
-Distributed under the **MIT License**. See `LICENSE` for details.
